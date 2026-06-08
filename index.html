@@ -464,44 +464,40 @@ label{font-size:12px;font-weight:600;color:var(--text2);display:block;margin-bot
   <!-- ══ INSTRUMENTOS DE EVALUACIÓN ══ -->
   <div id="cfg-cat-panel-inst">
     <!-- Sub-tabs -->
-    <div style="display:flex;gap:5px;margin-bottom:10px;overflow-x:auto">
-      <button id="cfg-inst-rub"    class="btn btn-sm inst-tab on"   onclick="cfgInst('rub')"><i class="ti ti-list-check"></i> Rúbricas</button>
-      <button id="cfg-inst-cotejo" class="btn btn-sm inst-tab"      onclick="cfgInst('cotejo')"><i class="ti ti-checkbox"></i> Cotejo</button>
-      <button id="cfg-inst-escala" class="btn btn-sm inst-tab"      onclick="cfgInst('escala')"><i class="ti ti-star-half"></i> Escalas</button>
-      <button id="cfg-inst-otros"  class="btn btn-sm inst-tab"      onclick="cfgInst('otros')"><i class="ti ti-file-plus"></i> Otros</button>
+    <div style="display:flex;gap:5px;margin-bottom:12px;overflow-x:auto">
+      <button id="cfg-inst-rub"    class="btn btn-sm inst-tab on"  onclick="cfgInst('rub')"><i class="ti ti-list-check"></i> Rúbricas</button>
+      <button id="cfg-inst-cotejo" class="btn btn-sm inst-tab"     onclick="cfgInst('cotejo')"><i class="ti ti-checkbox"></i> Cotejo</button>
+      <button id="cfg-inst-escala" class="btn btn-sm inst-tab"     onclick="cfgInst('escala')"><i class="ti ti-star-half"></i> Escalas</button>
+      <button id="cfg-inst-otros"  class="btn btn-sm inst-tab"     onclick="cfgInst('otros')"><i class="ti ti-file-plus"></i> Otros</button>
     </div>
 
-    <!-- Rúbricas -->
+    <!-- ── Rúbricas ── -->
     <div id="cfg-inst-panel-rub">
-      <div class="card" style="margin-bottom:8px"><div id="cfg-rub-list" style="display:flex;flex-direction:column;gap:7px"></div></div>
+      <div class="card" style="margin-bottom:8px">
+        <div id="cfg-rub-list" style="display:flex;flex-direction:column;gap:7px"></div>
+      </div>
       <button class="btn" onclick="abrirEditor()"><i class="ti ti-plus"></i> Nueva rúbrica personalizada</button>
     </div>
 
-    <!-- Listas de cotejo -->
+    <!-- ── Listas de cotejo ── -->
     <div id="cfg-inst-panel-cotejo" style="display:none">
-      <div class="info-box" style="margin-bottom:8px;font-size:11px"><strong>[G]</strong> Evaluado en la Guía &nbsp;·&nbsp; <strong>[S]</strong> Evaluado en la Sesión</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px">
-        <button class="btn btn-sm" onclick="verCotejo('caida')">2° Caída Libre</button>
-        <button class="btn btn-sm" onclick="verCotejo('cg')">3° CG y Equilibrio</button>
-        <button class="btn btn-sm" onclick="verCotejo('trabajo')">4° Trabajo Mecánico</button>
-        <button class="btn btn-sm" onclick="verCotejo('mas')">5° MAS masa-resorte</button>
+      <div class="info-box" style="margin-bottom:10px;font-size:11px">
+        <strong>[G]</strong> Evaluado en la Guía &nbsp;·&nbsp; <strong>[S]</strong> Evaluado en la Sesión
       </div>
-      <div id="cotejo-visor"></div>
+      <div id="cfg-cotejo-list" style="display:flex;flex-direction:column;gap:8px"></div>
+      <div id="cotejo-visor" style="margin-top:4px"></div>
     </div>
 
-    <!-- Escalas de desempeño -->
+    <!-- ── Escalas de desempeño ── -->
     <div id="cfg-inst-panel-escala" style="display:none">
-      <div class="info-box" style="margin-bottom:8px;font-size:11px">Escala AD/A/B/C por competencia según grado y práctica.</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px">
-        <button class="btn btn-sm" onclick="verEscala('caida')">2° Caída Libre</button>
-        <button class="btn btn-sm" onclick="verEscala('cg')">3° CG y Equilibrio</button>
-        <button class="btn btn-sm" onclick="verEscala('trabajo')">4° Trabajo Mecánico</button>
-        <button class="btn btn-sm" onclick="verEscala('mas')">5° MAS masa-resorte</button>
+      <div class="info-box" style="margin-bottom:10px;font-size:11px">
+        Niveles AD / A / B / C por competencia (C20, C21, C22) según grado y práctica.
       </div>
-      <div id="escala-visor"></div>
+      <div id="cfg-escala-list" style="display:flex;flex-direction:column;gap:8px"></div>
+      <div id="escala-visor" style="margin-top:4px"></div>
     </div>
 
-    <!-- Otros -->
+    <!-- ── Otros ── -->
     <div id="cfg-inst-panel-otros" style="display:none">
       <div class="info-box">Próximamente: guías de observación y otros instrumentos personalizados.</div>
     </div>
@@ -1812,10 +1808,156 @@ function cfgInst(tab){
     if(btn) btn.classList.toggle('on', t===tab);
     if(panel) panel.style.display=(t===tab)?'block':'none';
   });
-  if(tab==='cotejo') renderCotejoGrid();
-  if(tab==='escala') renderEscalaGrid();
+  if(tab==='rub')    renderCfgRubricas();
+  if(tab==='cotejo') renderCotejoList();
+  if(tab==='escala') renderEscalaList();
 }
 // Backward compat: old cfgTab('rub'/'alm') now maps to new system
+function cfgTab(tab){
+  if(tab==='rub') cfgCat('inst');
+  else if(tab==='alm') cfgCat('gest');
+}
+
+// ── Listas de cotejo: listar como tarjetas ──────────────────────────────────
+function renderCotejoList(){
+  var el=document.getElementById('cfg-cotejo-list'); if(!el) return;
+  el.innerHTML='';
+  document.getElementById('cotejo-visor').innerHTML='';
+  var orden=['caida','cg','trabajo','mas'];
+  orden.forEach(function(key){
+    var lc=LISTAS_COTEJO[key]; if(!lc) return;
+    var total=(lc.C20||[]).length+(lc.C21||[]).length+(lc.C22||[]).length;
+    var card=document.createElement('div');
+    card.style.cssText='background:var(--bg);border:1px solid var(--border2);border-radius:var(--r);overflow:hidden;margin-bottom:2px';
+    var hdr=document.createElement('div');
+    hdr.style.cssText='display:flex;align-items:center;justify-content:space-between;padding:10px 12px;cursor:pointer';
+    hdr.innerHTML='<div><div style="font-weight:700;font-size:13px">'+lc.titulo+'</div>'
+      +'<div style="font-size:11px;color:var(--text2);margin-top:2px">'+lc.grado+' Sec. &nbsp;·&nbsp; '+total+' ítems &nbsp;·&nbsp; C20·C21·C22</div></div>'
+      +'<i class="ti ti-chevron-down" id="ico-cotejo-'+key+'" style="color:var(--text2);transition:transform .2s"></i>';
+    var detail=document.createElement('div');
+    detail.id='detail-cotejo-'+key;
+    detail.style.cssText='display:none;border-top:1px solid var(--border)';
+    hdr.addEventListener('click',function(){ toggleCotejoCard(key,detail,document.getElementById('ico-cotejo-'+key)); });
+    card.appendChild(hdr);
+    card.appendChild(detail);
+    el.appendChild(card);
+  });
+}
+function toggleCotejoCard(key,detail,ico){
+  detail=detail||document.getElementById('detail-cotejo-'+key);
+  ico=ico||document.getElementById('ico-cotejo-'+key);
+  if(!detail) return;
+  var open=detail.style.display!=='none';
+  detail.style.display=open?'none':'block';
+  if(ico) ico.style.transform=open?'':'rotate(180deg)';
+  if(!open && !detail.dataset.loaded){
+    detail.dataset.loaded='1';
+    detail.innerHTML=buildCotejoHTML(key);
+  }
+}
+function buildCotejoHTML(key){
+  var lc=LISTAS_COTEJO[key]; if(!lc) return '';
+  var compNames={C20:'C20 — Indaga mediante métodos científicos',C21:'C21 — Explica el mundo físico',C22:'C22 — Diseña y produce soluciones'};
+  var html='<div style="padding:10px 12px">';
+  ['C20','C21','C22'].forEach(function(comp){
+    html+='<div style="font-size:11px;font-weight:800;color:var(--text2);margin:8px 0 4px">'+compNames[comp]+'</div>';
+    (lc[comp]||[]).forEach(function(d){
+      var tag=typeof d==='object'?d.tag:'G';
+      var txt=typeof d==='object'?d.txt:d;
+      var num=typeof d==='object'?d.num:'';
+      var tagCls=(tag==='S'||tag==='D')?'ctag-d':'ctag-g';
+      html+='<div style="display:flex;align-items:flex-start;gap:6px;padding:4px 0;border-bottom:1px solid var(--border);font-size:11px">'
+        +'<span style="flex-shrink:0;min-width:18px;font-weight:800;color:var(--text2)">'+num+'</span>'
+        +'<span class="ctag '+tagCls+'" style="flex-shrink:0">'+tag+'</span>'
+        +'<span style="flex:1">'+txt+'</span>'
+        +'</div>';
+    });
+  });
+  html+='</div>';
+  return html;
+}
+
+// ── Escalas de desempeño: listar como tarjetas ───────────────────────────────
+function renderEscalaList(){
+  var el=document.getElementById('cfg-escala-list'); if(!el) return;
+  el.innerHTML='';
+  document.getElementById('escala-visor').innerHTML='';
+  var orden=['caida','cg','trabajo','mas'];
+  var nivDesc={
+    AD:'Supera los indicadores esperados con evidencia clara.',
+    A:'Cumple todos los indicadores de forma satisfactoria.',
+    B:'Cumple parcialmente; necesita apoyo puntual.',
+    C:'No cumple los indicadores o lo hace de forma mínima.'
+  };
+  orden.forEach(function(key){
+    var lc=LISTAS_COTEJO[key]; if(!lc) return;
+    var total=(lc.C20||[]).length+(lc.C21||[]).length+(lc.C22||[]).length;
+    var card=document.createElement('div');
+    card.style.cssText='background:var(--bg);border:1px solid var(--border2);border-radius:var(--r);overflow:hidden';
+    var hdr2=document.createElement('div');
+    hdr2.style.cssText='display:flex;align-items:center;justify-content:space-between;padding:10px 12px;cursor:pointer';
+    hdr2.innerHTML='<div><div style="font-weight:700;font-size:13px">'+lc.titulo+'</div>'
+      +'<div style="font-size:11px;color:var(--text2);margin-top:2px">'+lc.grado+' Sec. &nbsp;·&nbsp; '+total+' desempeños &nbsp;·&nbsp; AD/A/B/C</div></div>'
+      +'<i class="ti ti-chevron-down" id="ico-escala-'+key+'" style="color:var(--text2);transition:transform .2s"></i>';
+    var detail2=document.createElement('div');
+    detail2.id='detail-escala-'+key;
+    detail2.style.cssText='display:none;border-top:1px solid var(--border)';
+    hdr2.addEventListener('click',function(){ toggleEscalaCard(key,detail2,document.getElementById('ico-escala-'+key)); });
+    card.appendChild(hdr2);
+    card.appendChild(detail2);
+    el.appendChild(card);
+  });
+}
+function toggleEscalaCard(key,detail,ico){
+  detail=detail||document.getElementById('detail-escala-'+key);
+  ico=ico||document.getElementById('ico-escala-'+key);
+  if(!detail) return;
+  var open=detail.style.display!=='none';
+  detail.style.display=open?'none':'block';
+  if(ico) ico.style.transform=open?'':'rotate(180deg)';
+  if(!open && !detail.dataset.loaded){
+    detail.dataset.loaded='1';
+    detail.innerHTML=buildEscalaHTML(key);
+  }
+}
+function buildEscalaHTML(key){
+  var lc=LISTAS_COTEJO[key]; if(!lc) return '';
+  var nivDesc={AD:'Supera los indicadores esperados.',A:'Cumple todos los indicadores.',B:'Cumple parcialmente.',C:'Inicio — no cumple los indicadores.'};
+  var nivColor={AD:'var(--green)',A:'var(--accent)',B:'var(--amber)',C:'var(--red)'};
+  var compNames={C20:'C20 — Indaga mediante métodos científicos',C21:'C21 — Explica el mundo físico',C22:'C22 — Diseña y produce soluciones'};
+  var html='<div style="padding:10px 12px">';
+  // Escala de niveles
+  html+='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--border)">';
+  ['AD','A','B','C'].forEach(function(n){
+    html+='<div style="flex:1;min-width:60px;text-align:center;padding:6px 4px;border-radius:var(--r);border:1px solid var(--border2)">'
+      +'<div style="font-weight:800;font-size:13px;color:'+nivColor[n]+'">'+n+'</div>'
+      +'<div style="font-size:9px;color:var(--text2);margin-top:2px">'+nivDesc[n]+'</div>'
+      +'</div>';
+  });
+  html+='</div>';
+  ['C20','C21','C22'].forEach(function(comp){
+    html+='<div style="font-size:11px;font-weight:800;color:var(--text2);margin:8px 0 4px">'+compNames[comp]+'</div>';
+    (lc[comp]||[]).forEach(function(d){
+      var tag=typeof d==='object'?d.tag:'G';
+      var txt=typeof d==='object'?d.txt:d;
+      var num=typeof d==='object'?d.num:'';
+      html+='<div style="display:flex;align-items:flex-start;gap:6px;padding:4px 0;border-bottom:1px solid var(--border);font-size:11px">'
+        +'<span style="flex-shrink:0;min-width:18px;font-weight:800;color:var(--text2)">'+num+'</span>'
+        +'<span style="flex:1">'+txt+'</span>'
+        +'<div style="display:flex;gap:3px;flex-shrink:0">'+['AD','A','B','C'].map(function(n){
+          return '<span style="width:22px;height:22px;border-radius:4px;border:1.5px solid var(--border2);display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;color:var(--text2)">'+n+'</span>';
+        }).join('')+'</div>'
+        +'</div>';
+    });
+  });
+  html+='</div>';
+  return html;
+}
+
+// ── verCotejo / verEscala (legacy, keep for backward compat) ─────────────────
+function verCotejo(key){ toggleCotejoCard(key); }
+function verEscala(key){ toggleEscalaCard(key); }
+
 function cfgTab(tab){
   if(tab==='rub') cfgCat('inst');
   else if(tab==='alm') cfgCat('gest');

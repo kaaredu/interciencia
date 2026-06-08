@@ -413,33 +413,28 @@ label{font-size:12px;font-weight:600;color:var(--text2);display:block;margin-bot
     </select>
     <label>Fecha de ejecución</label>
     <input type="date" id="np-fecha">
-    <label>Método de evaluación</label>
-    <select id="np-metodo" onchange="npMetodoChange(this.value)">
-      <option value="rubrica">Rúbrica de desempeños (AD/A/B/C)</option>
-      <option value="cotejo">Lista de cotejo con escala (AD/A/B/C)</option>
-      <option value="escala">Escala de desempeños (AD/A/B/C)</option>
+    <label>Instrumento de evaluación</label>
+    <select id="np-instrumento">
+      <optgroup label="── Rúbricas de desempeños ──">
+        <option value="rubrica|caida">Rúbrica — Caída Libre (2°)</option>
+        <option value="rubrica|cg">Rúbrica — CG y Equilibrio (3°)</option>
+        <option value="rubrica|trabajo">Rúbrica — Trabajo Mecánico (4°)</option>
+        <option value="rubrica|mas">Rúbrica — MAS masa-resorte (5°)</option>
+      </optgroup>
+      <optgroup label="── Listas de cotejo ──">
+        <option value="cotejo|caida">Lista de cotejo — Caída Libre (2°)</option>
+        <option value="cotejo|cg">Lista de cotejo — CG y Equilibrio (3°)</option>
+        <option value="cotejo|trabajo">Lista de cotejo — Trabajo Mecánico (4°)</option>
+        <option value="cotejo|mas">Lista de cotejo — MAS masa-resorte (5°)</option>
+      </optgroup>
+      <optgroup label="── Escalas de desempeño ──">
+        <option value="escala|caida">Escala de desempeño — Caída Libre (2°)</option>
+        <option value="escala|cg">Escala de desempeño — CG y Equilibrio (3°)</option>
+        <option value="escala|trabajo">Escala de desempeño — Trabajo Mecánico (4°)</option>
+        <option value="escala|mas">Escala de desempeño — MAS masa-resorte (5°)</option>
+      </optgroup>
+      <optgroup id="np-optgroup-custom" label="── Personalizadas ──" style="display:none"></optgroup>
     </select>
-    <!-- Instrumento: rúbrica -->
-    <div id="np-row-rubrica">
-      <label>Rúbrica asociada</label>
-      <select id="np-rubrica">
-        <option value="caida">Caída Libre (2°) — 13 desempeños</option>
-        <option value="cg">CG y Equilibrio (3°) — 13 desempeños</option>
-        <option value="trabajo">Trabajo Mecánico (4°) — 13 desempeños</option>
-        <option value="mas">MAS masa-resorte (5°) — 13 desempeños</option>
-        <option value="custom">Personalizada</option>
-      </select>
-    </div>
-    <!-- Instrumento: cotejo / escala -->
-    <div id="np-row-cotejo" style="display:none">
-      <label>Lista de cotejo / Escala asociada</label>
-      <select id="np-cotejo">
-        <option value="caida">Caída Libre (2°) — 13 ítems</option>
-        <option value="cg">CG y Equilibrio (3°) — 13 ítems</option>
-        <option value="trabajo">Trabajo Mecánico (4°) — 13 ítems</option>
-        <option value="mas">MAS masa-resorte (5°) — 13 ítems</option>
-      </select>
-    </div>
     <label>Notas / descripción (opcional)</label>
     <textarea id="np-notas" placeholder="Materiales, observaciones, etc."></textarea>
     <button class="btn btn-p" onclick="guardarPractica()"><i class="ti ti-check"></i> Guardar práctica</button>
@@ -1524,13 +1519,6 @@ function distLimpiar(){ getAls(st.sec).forEach((_,i)=>{ asigTemp[i]=0; }); chipS
 // ══════════════════════════════════════════════════════
 // PRÁCTICAS
 // ══════════════════════════════════════════════════════
-// ── Nueva práctica: mostrar/ocultar selector según método ─────────────────
-function npMetodoChange(val){
-  var rowRub = document.getElementById('np-row-rubrica');
-  var rowCot = document.getElementById('np-row-cotejo');
-  if(rowRub) rowRub.style.display = (val==='rubrica') ? 'block' : 'none';
-  if(rowCot) rowCot.style.display = (val!=='rubrica') ? 'block' : 'none';
-}
 
 function renderPracticas(){
   const el=document.getElementById('practicas-list'); el.innerHTML='';
@@ -1561,10 +1549,8 @@ function guardarPractica(){
     nombre: document.getElementById('np-nombre').value.trim()||'Sin nombre',
     grado:  document.getElementById('np-grado').value,
     fecha:  document.getElementById('np-fecha').value,
-    metodo: document.getElementById('np-metodo').value,
-    rubrica:(document.getElementById('np-metodo').value==='rubrica'
-             ? document.getElementById('np-rubrica').value
-             : document.getElementById('np-cotejo').value),
+    metodo: (function(){ var v=document.getElementById('np-instrumento').value||'rubrica|caida'; return v.split('|')[0]; })(),
+    rubrica:(function(){ var v=document.getElementById('np-instrumento').value||'rubrica|caida'; return v.split('|')[1]||'caida'; })(),
     notas:  document.getElementById('np-notas').value.trim(),
   };
   if(id!==undefined && id!=='') practicas[parseInt(id)]=p;
@@ -1581,10 +1567,8 @@ function editarPractica(i){
   document.getElementById('np-nombre').value=p.nombre;
   document.getElementById('np-grado').value=p.grado;
   document.getElementById('np-fecha').value=p.fecha||'';
-  document.getElementById('np-metodo').value=p.metodo;
-  npMetodoChange(p.metodo);
-  if(p.metodo==='rubrica'){ document.getElementById('np-rubrica').value=p.rubrica||'caida'; }
-  else { var ce=document.getElementById('np-cotejo'); if(ce) ce.value=p.rubrica||'caida'; }
+  var instr=document.getElementById('np-instrumento');
+  if(instr){ instr.value=(p.metodo||'rubrica')+'|'+(p.rubrica||'caida'); }
   document.getElementById('np-notas').value=p.notas||'';
   document.getElementById('np-titulo').textContent='Editar práctica';
   document.getElementById('np-titulo').dataset.editIdx=i;
@@ -1748,7 +1732,7 @@ function guardarRubricaCustom(){
 }
 function actualizarSelectsPractica(){
   // ── Selects de rúbrica ────────────────────────────────────────────────────
-  ['ns-prac','dl-practica','np-rubrica'].forEach(id=>{
+  ['ns-prac','dl-practica'].forEach(id=>{
     const el=document.getElementById(id); if(!el)return;
     const existing=Array.from(el.options).map(o=>o.value);
     Object.entries(RUBRICAS).forEach(([key,r])=>{
@@ -1765,37 +1749,28 @@ function actualizarSelectsPractica(){
     });
   });
 
-  // ── Select de listas de cotejo (np-cotejo) ────────────────────────────────
-  const elC=document.getElementById('np-cotejo'); if(!elC) return;
-  // Reconstruir completo: fijas de LISTAS_COTEJO + rúbricas custom (usables como cotejo)
-  const prevVal=elC.value;
-  elC.innerHTML='';
-  // Listas fijas
-  const fijas={
-    caida: 'Caída Libre (2°) — 13 ítems',
-    cg:    'CG y Equilibrio (3°) — 13 ítems',
-    trabajo: 'Trabajo Mecánico (4°) — 13 ítems',
-    mas:   'MAS masa-resorte (5°) — 13 ítems',
-  };
-  Object.entries(fijas).forEach(([key,label])=>{
-    const opt=document.createElement('option');
-    opt.value=key; opt.textContent=label; elC.appendChild(opt);
-  });
-  // Listas personalizadas guardadas en LISTAS_COTEJO (si las hubiera)
-  Object.entries(LISTAS_COTEJO).forEach(([key,lc])=>{
-    if(fijas[key]) return; // ya está
-    const opt=document.createElement('option');
-    opt.value=key; opt.textContent=`${lc.titulo} (${lc.grado}) — personalizada`; elC.appendChild(opt);
-  });
-  // Rúbricas custom también disponibles como cotejo
+  // ── np-instrumento: agregar rúbricas custom en el optgroup personalizado ──
+  const sel=document.getElementById('np-instrumento'); if(!sel) return;
+  const grp=document.getElementById('np-optgroup-custom'); if(!grp) return;
+  const prevInstr=sel.value;
+  grp.innerHTML='';
   const baseKeys=['caida','cg','trabajo','mas'];
+  var hasCustom=false;
+  // Rúbricas personalizadas
   Object.entries(RUBRICAS).forEach(([key,r])=>{
     if(baseKeys.includes(key)) return;
-    const opt=document.createElement('option');
-    opt.value=key; opt.textContent=`${r.nombre} — ${r.grado} (rúbrica custom)`; elC.appendChild(opt);
+    hasCustom=true;
+    ['rubrica','cotejo','escala'].forEach(function(tipo){
+      const lbl={rubrica:'Rúbrica',cotejo:'Lista de cotejo',escala:'Escala'}[tipo];
+      const opt=document.createElement('option');
+      opt.value=tipo+'|'+key;
+      opt.textContent=lbl+' — '+r.nombre+' ('+r.grado+')';
+      grp.appendChild(opt);
+    });
   });
-  // Restaurar selección previa si sigue disponible
-  if(prevVal && Array.from(elC.options).some(o=>o.value===prevVal)) elC.value=prevVal;
+  grp.style.display=hasCustom?'':'none';
+  // Restaurar selección si sigue disponible
+  if(prevInstr && Array.from(sel.options).some(o=>o.value===prevInstr)) sel.value=prevInstr;
 }
 
 

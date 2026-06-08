@@ -166,6 +166,27 @@ label{font-size:12px;font-weight:600;color:var(--text2);display:block;margin-bot
 .ns-tbl td{padding:6px 5px;border-bottom:1px solid var(--border);vertical-align:middle}
 .row-bc{background:var(--amber-bg)}
 .sync-dot{width:8px;height:8px;border-radius:50%;display:inline-block;vertical-align:middle;margin-left:4px}.sync-ok{background:#0F6E56}.sync-pend{background:#BA7517}.sync-err{background:#A32D2D}
+
+/* Instrumentos sub-tabs */
+.inst-tab{background:var(--bg);border:1px solid var(--border2);color:var(--text2);font-size:11px;padding:6px 10px;white-space:nowrap}
+.inst-tab.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+/* Cotejo / Escala visor */
+.cotejo-tabla{width:100%;border-collapse:collapse;font-size:11px;margin-bottom:12px}
+.cotejo-tabla th{background:var(--bg2);padding:6px 8px;text-align:left;font-size:10px;font-weight:700;border-bottom:2px solid var(--border2)}
+.cotejo-tabla td{padding:7px 8px;border-bottom:1px solid var(--border);vertical-align:top}
+.cotejo-tabla tr:last-child td{border-bottom:none}
+.ctag-comp{display:inline-block;padding:1px 5px;border-radius:4px;font-size:10px;font-weight:800;margin-right:4px}
+.ctag-G{background:var(--bg3);color:var(--text)}
+.ctag-S{background:var(--amber-bg);color:var(--amber-txt)}
+.comp-hdr{font-size:11px;font-weight:800;padding:6px 8px;background:var(--bg2);border-radius:var(--r);margin:8px 0 4px}
+/* Nota tiempo real en calificar */
+.notas-rt{display:flex;gap:6px;margin:8px 0;padding:8px 10px;background:var(--bg2);border-radius:var(--r);border:1px solid var(--border)}
+.nota-rt-item{flex:1;text-align:center}
+.nota-rt-lbl{font-size:9px;font-weight:700;color:var(--text2);margin-bottom:2px}
+.nota-rt-val{font-size:15px;font-weight:800}
+/* Asistencia por mesa */
+.asist-mesa-badge{display:inline-block;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:700;margin-left:4px}
+
 /* Asistencia */
 .asist-card{background:var(--bg);border:1px solid var(--border);border-radius:var(--r);margin-bottom:8px;overflow:hidden}
 .asist-mesa-hdr{padding:8px 12px;background:var(--bg2);font-weight:700;font-size:12px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)}
@@ -280,6 +301,25 @@ label{font-size:12px;font-weight:600;color:var(--text2);display:block;margin-bot
       <button id="ct22" class="ctab" onclick="selComp('C22')">C22</button>
     </div>
     <div class="info-box" id="comp-info"></div>
+    <!-- Notas en tiempo real -->
+    <div class="notas-rt" id="notas-rt">
+      <div class="nota-rt-item">
+        <div class="nota-rt-lbl">C20</div>
+        <div class="nota-rt-val" id="rt-C20">—</div>
+      </div>
+      <div class="nota-rt-item">
+        <div class="nota-rt-lbl">C21</div>
+        <div class="nota-rt-val" id="rt-C21">—</div>
+      </div>
+      <div class="nota-rt-item">
+        <div class="nota-rt-lbl">C22</div>
+        <div class="nota-rt-val" id="rt-C22">—</div>
+      </div>
+      <div class="nota-rt-item" style="border-left:2px solid var(--border2);padding-left:8px">
+        <div class="nota-rt-lbl">NOTA</div>
+        <div class="nota-rt-val" id="rt-NOTA">—</div>
+      </div>
+    </div>
     <div id="mesa-des"></div>
     <div class="btn-row">
       <button class="btn btn-sm" style="flex:1" onclick="navComp(-1)" id="btn-prev"><i class="ti ti-chevron-left"></i> Anterior</button>
@@ -404,20 +444,65 @@ label{font-size:12px;font-weight:600;color:var(--text2);display:block;margin-bot
     <div class="row-sb" style="margin-bottom:6px"><span class="muted">Usuario</span><span style="font-weight:700;font-size:13px" id="cfg-user">—</span></div>
     <div class="row-sb"><span class="muted">Almacenamiento</span><span style="font-size:12px">Firebase Realtime DB</span></div>
   </div>
-  <!-- Tabs -->
+
+  <!-- Categorías principales -->
   <div style="display:flex;border:1px solid var(--border2);border-radius:var(--r);overflow:hidden;margin-bottom:14px">
-    <button id="cfg-tab-rub" class="ctab on" onclick="cfgTab('rub')"><i class="ti ti-list-check"></i> Gestión de rúbricas</button>
-    <button id="cfg-tab-alm" class="ctab"     onclick="cfgTab('alm')"><i class="ti ti-users"></i> Gestión de estudiantes</button>
+    <button id="cfg-cat-inst" class="ctab on" onclick="cfgCat('inst')"><i class="ti ti-clipboard-list"></i> Instrumentos de evaluación</button>
+    <button id="cfg-cat-gest" class="ctab"    onclick="cfgCat('gest')"><i class="ti ti-users"></i> Gestión de estudiantes</button>
   </div>
-  <!-- Panel Rúbricas -->
-  <div id="cfg-panel-rub">
-    <div class="card"><div id="cfg-rub-list" style="display:flex;flex-direction:column;gap:7px"></div></div>
-    <button class="btn" onclick="abrirEditor()" style="margin-top:8px"><i class="ti ti-plus"></i> Nueva rúbrica</button>
+
+  <!-- ── CATEGORÍA: Instrumentos de evaluación ── -->
+  <div id="cfg-cat-panel-inst">
+    <!-- Sub-tabs instrumentos -->
+    <div style="display:flex;gap:6px;margin-bottom:12px;overflow-x:auto;padding-bottom:2px">
+      <button id="cfg-inst-rub"    class="btn btn-sm inst-tab on"   onclick="cfgInst('rub')"><i class="ti ti-list-check"></i> Rúbricas</button>
+      <button id="cfg-inst-cotejo" class="btn btn-sm inst-tab"      onclick="cfgInst('cotejo')"><i class="ti ti-checkbox"></i> Listas de cotejo</button>
+      <button id="cfg-inst-escala" class="btn btn-sm inst-tab"      onclick="cfgInst('escala')"><i class="ti ti-star"></i> Escala de desempeños</button>
+      <button id="cfg-inst-otros"  class="btn btn-sm inst-tab"      onclick="cfgInst('otros')"><i class="ti ti-file-description"></i> Otros</button>
+    </div>
+
+    <!-- Panel Rúbricas -->
+    <div id="cfg-inst-panel-rub">
+      <div class="card"><div id="cfg-rub-list" style="display:flex;flex-direction:column;gap:7px"></div></div>
+      <button class="btn" onclick="abrirEditor()" style="margin-top:8px"><i class="ti ti-plus"></i> Nueva rúbrica</button>
+    </div>
+
+    <!-- Panel Listas de cotejo -->
+    <div id="cfg-inst-panel-cotejo" style="display:none">
+      <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap">
+        <button class="btn btn-sm" onclick="verCotejo('caida')" style="flex:1">2° — Caída Libre</button>
+        <button class="btn btn-sm" onclick="verCotejo('cg')"    style="flex:1">3° — CG y Equilibrio</button>
+        <button class="btn btn-sm" onclick="verCotejo('trabajo')" style="flex:1">4° — Trabajo Mecánico</button>
+        <button class="btn btn-sm" onclick="verCotejo('mas')"   style="flex:1">5° — MAS masa-resorte</button>
+      </div>
+      <div id="cotejo-visor"></div>
+    </div>
+
+    <!-- Panel Escala de desempeños -->
+    <div id="cfg-inst-panel-escala" style="display:none">
+      <div class="info-box" style="margin-bottom:10px;font-size:12px">
+        Las escalas de desempeño definen los niveles AD / A / B / C para cada competencia según grado y práctica. Son la base de la rúbrica utilizada en la calificación de mesas.
+      </div>
+      <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap">
+        <button class="btn btn-sm" onclick="verEscala('caida')"   style="flex:1">2° — Caída Libre</button>
+        <button class="btn btn-sm" onclick="verEscala('cg')"      style="flex:1">3° — CG y Equilibrio</button>
+        <button class="btn btn-sm" onclick="verEscala('trabajo')" style="flex:1">4° — Trabajo Mecánico</button>
+        <button class="btn btn-sm" onclick="verEscala('mas')"     style="flex:1">5° — MAS masa-resorte</button>
+      </div>
+      <div id="escala-visor"></div>
+    </div>
+
+    <!-- Panel Otros -->
+    <div id="cfg-inst-panel-otros" style="display:none">
+      <div class="info-box">Próximamente: listas de verificación personalizadas, guías de observación y otros instrumentos.</div>
+    </div>
   </div>
-  <!-- Panel Estudiantes -->
-  <div id="cfg-panel-alm" style="display:none">
+
+  <!-- ── CATEGORÍA: Gestión de estudiantes ── -->
+  <div id="cfg-cat-panel-gest" style="display:none">
     <div style="display:flex;gap:8px;margin-bottom:8px;align-items:center">
       <select id="gestor-sec" onchange="renderGestorAlumnos(this.value)" style="flex:1;padding:8px;font-size:12px;border:1px solid var(--border2);border-radius:var(--r);background:var(--bg);color:var(--text)">
+        <optgroup label="1°"><option>1° A</option><option>1° B</option><option>1° C</option></optgroup>
         <optgroup label="2°"><option>2° A</option><option>2° B</option><option>2° C</option></optgroup>
         <optgroup label="3°"><option>3° A</option><option>3° B</option><option>3° C</option></optgroup>
         <optgroup label="4°"><option>4° A</option><option>4° B</option><option>4° C</option></optgroup>
@@ -426,11 +511,12 @@ label{font-size:12px;font-weight:600;color:var(--text2);display:block;margin-bot
       <span id="gestor-count" class="muted" style="font-size:11px;white-space:nowrap"></span>
     </div>
     <div style="display:flex;gap:8px;margin-bottom:8px">
-      <input type="text" id="gestor-nuevo" placeholder="APELLIDOS, Nombre nuevo" style="flex:1;padding:8px;font-size:12px;border:1px solid var(--border2);border-radius:var(--r);background:var(--bg);color:var(--text)">
+      <input type="text" id="gestor-nuevo" placeholder="APELLIDOS Nombre nuevo" style="flex:1;padding:8px;font-size:12px;border:1px solid var(--border2);border-radius:var(--r);background:var(--bg);color:var(--text)">
       <button class="btn btn-p" style="flex:0;padding:8px 14px;font-size:16px" onclick="var s=document.getElementById('gestor-sec').value;var n=document.getElementById('gestor-nuevo').value;agregarAlumno(s,n);document.getElementById('gestor-nuevo').value=''"><i class="ti ti-plus"></i></button>
     </div>
     <div id="gestor-lista" style="max-height:300px;overflow-y:auto"></div>
   </div>
+
   <button class="btn" style="color:var(--red-txt);margin-top:20px" onclick="doLogout()"><i class="ti ti-logout"></i> Cerrar sesión</button>
 </div>
 
@@ -589,19 +675,40 @@ label{font-size:12px;font-weight:600;color:var(--text2);display:block;margin-bot
     </div>
   </div>
 
+  <!-- Modo tabs: por sección / por mesa -->
+  <div style="display:flex;border:1px solid var(--border2);border-radius:var(--r);overflow:hidden;margin-bottom:10px">
+    <button id="atab-sec"  class="ctab on" onclick="asistTab('sec')"><i class="ti ti-users"></i> Por sección</button>
+    <button id="atab-mesa" class="ctab"    onclick="asistTab('mesa')"><i class="ti ti-layout-grid"></i> Por mesa</button>
+  </div>
+
   <!-- Resumen chips -->
   <div id="asist-resumen" class="card" style="margin-bottom:10px;padding:10px 14px">
-    <div class="row-sb">
-      <span class="muted" style="font-size:12px">Presentes</span>
-      <span id="asist-count-p" style="font-weight:800;color:var(--green)">0</span>
+    <div style="display:flex;gap:12px;flex-wrap:wrap">
+      <div style="display:flex;align-items:center;gap:6px">
+        <span style="width:10px;height:10px;border-radius:50%;background:var(--green);display:inline-block"></span>
+        <span class="muted" style="font-size:12px">Presentes</span>
+        <span id="asist-count-p" style="font-weight:800;color:var(--green)">0</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px">
+        <span style="width:10px;height:10px;border-radius:50%;background:var(--red);display:inline-block"></span>
+        <span class="muted" style="font-size:12px">Ausentes</span>
+        <span id="asist-count-a" style="font-weight:800;color:var(--red)">0</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px">
+        <span style="width:10px;height:10px;border-radius:50%;background:var(--amber);display:inline-block"></span>
+        <span class="muted" style="font-size:12px">Tardanza</span>
+        <span id="asist-count-t" style="font-weight:800;color:var(--amber)">0</span>
+      </div>
     </div>
-    <div class="row-sb" style="margin-top:4px">
-      <span class="muted" style="font-size:12px">Ausentes</span>
-      <span id="asist-count-a" style="font-weight:800;color:var(--red)">0</span>
-    </div>
-    <div class="row-sb" style="margin-top:4px">
-      <span class="muted" style="font-size:12px">Tardanza</span>
-      <span id="asist-count-t" style="font-weight:800;color:var(--amber)">0</span>
+    <!-- Sesión vinculada (modo mesa) -->
+    <div id="asist-sesion-row" style="display:none;margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">
+      <label style="font-size:11px;margin:0 0 4px">Práctica / Sesión del día</label>
+      <select id="asist-sesion" style="margin:0;font-size:12px">
+        <option value="caida">Caída Libre (2°)</option>
+        <option value="cg">CG y Equilibrio (3°)</option>
+        <option value="trabajo">Trabajo Mecánico (4°)</option>
+        <option value="mas">MAS masa-resorte (5°)</option>
+      </select>
     </div>
   </div>
 
@@ -615,7 +722,7 @@ label{font-size:12px;font-weight:600;color:var(--text2);display:block;margin-bot
     </button>
   </div>
 
-  <!-- Lista por mesa -->
+  <!-- Lista (modo sección = lista simple / modo mesa = agrupado por mesa) -->
   <div id="asist-lista"></div>
   <div style="margin-top:12px;padding-bottom:4px">
     <button class="btn" onclick="exportarAsistencia()"><i class="ti ti-table-export"></i> Exportar asistencia (Excel)</button>
@@ -719,6 +826,103 @@ const RUBRICAS = {
 
 const ALUMNOS = {"1° A": ["PEREZ SOTELO Priscilla Abigail", "FRASELLE LEON Stefano", "ORIHUELA BEGAZO Nicolás Mateo", "CORNEJO MEZA Mateo Santiago", "RICCI RIVERA Piero Alessandro", "VARGAS CASAS Alejandra Astrid", "SEVILLANO FRISANCHO Samy Fabiana", "QUEQUEZANA ROSAS Piero Alejandro", "GÓMEZ MEDINA Juan Pablo", "COPARA ALBARRACIN Fernanda Ariana", "VALENCIA MUÑIZ Joaquin Manuel", "TRIVIÑOS HANCCO Keyssi Oriana", "PONCE GONZALES Rafaela", "AGUILAR ARENAS Mariabelen Alessandra", "SANCHEZ BAHAMONDES Julieta Abigail", "BASUALDO LLACCHUA Nicolas Santiago", "CONCHA LUNA Luhanna Valeska", "GALLEGOS VILLENA Luciana Camill", "ALEGRE VALENCIA Fernanda Milagros", "MURGA TAIPE Gabriel Francisco", "BOCANGEL RAMOS Gabriel David", "CRUZ MENDOZA Bryanna Samanta", "ECHEVARRIA DIAZ Luana Micaela", "ARENAS LAYME Adrian Valentino", "ORTIZ APAZA Valentina Erika", "CARDENAS VILLANUEVA Fernanda Sofia", "LA TORRE MASIAS Brianna Valeria", "RIVEROS SAMANEZ Marcos Nicolás", "MEZA DELGADO Rafaela Luana", "CANO SALAS Leonardo Julio"], "1° B": ["CHAVEZ CHIRE Adrian Dario", "ESPINOZA CORNEJO Paula Daniela", "VILLEGAS BEGAZO Adriana Elena", "TOVAR ROJAS Arnau Rafael", "ARENAS LAZO Diego Francisco", "ORTIZ APAZA Luciana Erika", "MANRIQUE PASTOR Luciano Daniel", "SOUSA FERNANDEZ Karlos Aaron", "LOAYZA PICARDO Ariana Samantha", "CHIRE ALPACA Keyla Isabel", "TORRES AVILA Jose Diego", "ULLOA FLORES Joaquin Mateo", "MERINO DEL CARPIO Antonella Isabel", "PUMA TANCAYLLO Jacobo Samuel", "HUANCA BERROA Rafaela Abigail", "LINARES GUTIERREZ Mikhail Angel", "VILLALOBOS FLORES Luana Gabriela", "BEJARANO RAMIREZ Gabriel Nicolas", "RAMOS MOROCCO Daniel Victor", "MONCADA ZEVALLOS Andrés Santhiago", "CHAMBILLA DE LA SOTA Dánnelhy Adriana", "CRUZ GUTIÉRREZ Karen Milette Rafaella", "VILLANUEVA BARLETTI Ariadne Sophia", "BOLAÑOS DELGADO Valentina Michelle", "CARPIO CALDERON Leonardo Lewis", "MAYHUIRE MEDINA Enyira Anahí", "PESUA ZANABRIA Gracia Jesed", "AGUILAR ROJAS Gaela Paola", "ORTIZ MADUEÑO Kianna Aleska"], "1° C": ["GARCIA OCHOA Aldhanna Kyara Alexia", "YEPEZ VALDIVIA Zhoe Cecilia", "SANCHEZ MEDINA Adrian Samin", "AGUILAR COLLADO Ivana Amira", "FLORES TAMO José Pablo Horacio", "SALAS RAMOS Astrid Leonela", "PORTUGAL GALLEGOS Mateo Alejandro", "NUÑEZ CRUZ Matias Caleb", "FLORES MORALES Camila Rafaela", "FLORES ALARCON Benjamin Ludwing", "MIRAVAL FUENTES Luciana Sofia", "BARRIOS DIAZ Stephano Patricio", "LAZO LOPEZ Fabiana Odel", "MELÉNDEZ ACURIO Renata Alesandra", "SOTO MIRANDA Mathías Enmanuel", "VIDANGOS CARPIO Gabriel Alessandro", "GUERRA LAPA Samantha Valentina", "GONZALES CHAVEZ José Emiliano", "YANCACHAJLLA LUDEÑA Bibiana Clara Sayuri", "SILVA RIVERA Flavia Alejandra", "CARBAJAL EGUILUZ Ayelen Lizbeth", "FLORES AYAMAMANI Micaela Lucia", "PUMA CARITA Sofía Iraya", "TORRES ALVARADO Alejandro Rodrigo", "CHAMBI SIRENA Maria Gracia", "POSTIGO TEJADA Rafael Luciano", "JAÉN ORMACHEA Doménica", "NUÑEZ MELGAR RODRÍGUEZ Victor Gabriel", "PEREA ZEBALLOS Aaron Jhovan", "VILLANUEVA BARLETTI Valentina Aymee"], "2° A": ["CASTRO AMÉZQUITA Adriano Jesús", "CÁRDENAS RODRIGUEZ Maximiliano Fernando", "GUZMÁN RODRÍGUEZ Arianna Isabella", "BARRIONUEVO ROSEMBERG Mariajosé", "PALOMINO HUAYNA Victtoria Raphaela", "SAAVEDRA ZAFERSON Pablo Mauricio", "CHUMBE MALAGA Nia Tais Fernanda", "CARDENAS PULCHA Rodrigo Italo", "URDAY MANRIQUE Sara Julieta", "PORTUGAL QUELOPANA Jeremy Andres", "PACHECO HANCCO Andres Alejandro", "BALLON FERNANDEZ Isabella Briana", "HUAMAN MORA Emilia Isabela", "MUÑOZ NEIRA Sócrates Santiago", "CHAVEZ AMADO Facundo Valentino", "MARIÑO LLERENA Nicolás Esteban", "SOTO DURÁN Giacomo Leonardo", "MERINO DEL CARPIO Valentina Yrma", "SARDON ANDIA Briana Alessandra", "URDAY ALVAREZ Aylee Luana", "GUEVARA HUERTA Nathalya Mikaella", "FELIX BARRIGA Paolo Francisco", "ROMERO VELASQUEZ Matheo Miguel", "CAHUANA FLORES Adriano Juan Jose", "ANDRADE TORRES Fernanda Lucia", "OBANDO VALDIVIA Daniel Fernando", "NIETO MAMANI Xiara Luciana", "RAMIREZ CARRERA Oscar Alejandro", "MANZANEDA RÍOS Bianka Fabiana", "PAREDES ARPI Eduardo Fabrizio"], "2° B": ["LLERENA ANGULO Luciano Andres", "CUENTAS PICKMAN Luciana Paola", "ROJAS ROMERO Luana Fernanda", "MONGRUT FIGUEROA Ángel Farid", "RODRÍGUEZ CÓRDOVA Kaylee Olenka", "RAMOS QUEDAS Joaquín Ernesto", "CHINO QUISPE York Ferdinand", "MAYTA HANCCO Miguel Alejandro", "ARAMBIDE RIVAÑOS Luciana Mikaela", "MANZANARES FERNANDEZ Rafael Alejandro", "VILLAFUERTE PAJARES Renzo Jesús", "SILVA BUENO Rafaela Briana", "LOPEZ WONG Maria Fernanda Valentina", "CORIMANYA CCAMA Gael Mathews Stefano", "SALAS PINO Alejandro Mateo", "RIVERA VILA Daniela Nicole", "AGUILAR ARENAS Ana Lucia Fernanda", "LINARES ORDOÑEZ Lua", "GÓMEZ MENDOZA Santiago Valentino", "IRUS PAREDES Maria Fe Guadalupe", "QUIÑONES VELASQUEZ Thiago Miguel", "GALLEGOS PINTO Rodrigo Valentino", "VALDIVIA MAYHUIRE Thiago Facundo", "JUAREZ FERNANDEZ Fabrizio Alejandro", "FERNANDEZ FERNANDEZ Antonella Daniela", "DIAZ OGUSCO Mariapaula Daniela", "VALVERDE RAMOS Samuel Alexander", "NUÑEZ CRUZ Marco Sebastian", "ARAUJO MARQUEZ Camila Belen", "ZAPATA CESARDO Josué André"], "2° C": ["CHACON ESPINOZA Rodrigo Miguel", "PAREDES QUIROZ Miguel Ignacio", "MAYTA VERA Genesis Oriana", "ORTIZ MADUEÑO Adriano Maio", "SANCHEZ PASSANO Brianna Rafaela", "VALENCIA VENTURA Fiorela Valentina", "TORRES SOTO Luciana Valentina", "CONCHA LUNA Leandro Andre", "CALLATA GOMEZ Adriano Jael", "PINEDA MARTINEZ Jorge Adrian", "CHORA TORRES Fernando Antonio", "RAMIREZ JARA ALMONTE Rafaela Valentina", "PONCE TRUJILLO Andrea Valeria", "CUEVA JARAMILLO Samuel Alonso", "PILCO DIANDERAS Josemaría", "CALLO VILLANUEVA Shanie Sophie", "CHAVEZ MALCA Luana Rafaela", "DIAZ BEGAZO Gracia Carolina", "ALENCASTRE LLANOS Maximilian Iliá", "SARDÓN VALDIVIA Jorge Thiago", "BEJARANO ARISPE María Angela", "FLORES VARGAS Valentino Thiago", "CARDENAS SAICO Aldo Mauricio", "CHOQUE TERAN Thiago Samuel", "MOLLEDA PEREZ Valentina Antonella", "PAREDES ARPI Mikaela Gabriela", "CARRERA PRADO Maria Belen", "DELGADO PORTUGAL Mateo Gonzalo", "LUQUE VELÁSQUEZ Luna Valeska", "CALATAYUD GORDILLO Matías Alejandro"], "3° A": ["UMPIRE ALANOCA Fernando Gustavo", "GUZMAN BELTRAN Samuel Santiago", "NIETO JAEN Robert Gabriel", "VALDIVIA VARGAS Rodrigo Zebasthian", "MUÑOZ MAYTA Mishelle Isabella", "GONZALES ALVAREZ Alejandro Andre", "HUANQUI ARANIBAR Luana Maria", "OPORTO JACOBO Leandro Tiago", "OJEDA VÁSQUEZ Santiago Nicolás", "LOAYZA PICARDO Kamila Sofia", "MOSCOSO ARANA Ariana Belén", "SILVA RIVERA Mariana Lucia", "GUZMAN JUAREZ Josecarlos Joaquin", "MIRANDA MIRANDA Matheo Renzo", "CONTRERAS LOYAGA Brianna Isabel", "BARRIGA GOMEZ Fabrizio Esteban", "GARCIA HURTADO Victor Ignacio", "MEZA PINTO Miguel Andres", "MANZANO QUISPE Rafaela", "BARRANTES VILCA Jafeth Benjamin", "VILLANUEVA ZUÑIGA Kiara Milagros", "SOTO ZÚÑIGA Christian André Santiago", "NÚÑEZ TABOADA Mía Fernanda", "SEVILLANO ALEMÁN Eduardo André", "CERVERA TITTO Valery Nicole", "SALINAS TEJADA Leandro Antonio", "SARMIENTO GÓMEZ Esteban Máximus", "HUAMAN SALCEDO Lorena Jasmin", "IRUS PAREDES Maria Grazzia De Jesus"], "3° B": ["BUSTAMANTE MENDOZA Joaquin Stephano", "VALDIVIA ROCHA Benjamin Andre", "CHIRE ALPACA Angel Eduardo", "PAREDES LAJO Pía Valentina", "RANILLA HANCCO Adriano Paolo", "MARTINEZ LUZA Rafaella Lucia", "MACEDO FLORES Samyra Negdyd", "HURTADO SALINAS André Santiago", "SALCEDO SARMIENTO Marcelo Rolando", "ASTORGA MOGROVEJO Adolfo Eduardo", "GARCÍA DELGADO Juan Diego", "ARIAS ZEBALLOS Emily Tiaret", "TORRES BALDARRAGO Julio Gabriel", "MEDINA CORRALES Luciana Paola", "TEJADA CENEDESE Rafaela", "ARCE DIAZ Renato Ricardo", "AÑACATA ACOSTA Luciana Erika", "KLAUER VALENCIA Renato Joaquin", "VILCA CHUQUITAIPE Diana Lucia", "AYBAR CALDERON Luhana Sami", "CARLETTO PACHECO Valentina Julieth", "VELARDE OVIEDO Edward Cristopher Hamid", "SUPO RUPAY Tiago Nicolaz", "RIOS BERNAL Noah Emanuel", "CHAVEZ MALCA Rodrigo Fabian", "BENAVIDES PINTO Maria Emilia", "ARAUJO MÁRQUEZ Sergio Gustavo", "CRUZ GUTIERREZ Sebastian Adriano"], "3° C": ["BEDREGAL GARCÍA Fernando Andre", "CHACON HUAYNA Sophia Renatta", "CASTRO FLORES Adriano Valentino", "VALDEIGLESIAS CHACON Diego Alessandro", "PALACIN CONDORI Ariana Fernanda", "MENDOZA MELENDEZ Geanella Abigail", "BENAVIDES PINTO María Fernanda", "VASQUEZ SALAS Fabio Alonso", "MATTOS SANCHEZ Javier Alejandro", "RONSONI QUISCA Camila Yasmini", "VELEZMORO ROSADO Tadeo Leandro", "BARRIONUEVO ROSEMBERG Valeria", "BARREDA BUSTINZA Marcelo Alejandro", "DEL CARPIO ALVARADO Salvador Luciano", "VELAZCO VERDE Juan Diego", "DELGADO FUENTES Mariana Rafaela", "SALAS SALINAS Aarón Manuel", "RODRIGUEZ RAMIREZ Flavia Luana", "BELTRAN ORTIZ Daren", "RIVERA TICONA Mathew Nicolas", "MEZA ROMERO Dan Marc Arom", "SUPO RUPAY Xiara Ximena", "SOTO MIRANDA Josue Alessandro", "URIAS MALDONADO Nicolas Alejandro", "ASTIGUETA GALAGARZA Diego Andre", "MEDINA NÚÑEZ Joaquin Ismael", "BUSTOS BELLIDO Noé Alfredo", "GONZALES VALENCIA Angelinne Elena", "CASTAÑEDA VERAPINTO Camila Rebeca"], "4° A": ["SOTO RODRIGUEZ Ernesto Felipe", "HUANCA LARA Luis Santiago", "SANZ CHIRINOS Giancarlo", "VERÁSTEGUI FERNÁNDEZ Carlos Alejandro", "CARRUITERO VILLANUEVA Daniela Valentina", "CHENEAUX POLAR Elizabeth Veronica", "LLERENA QUISPE Valeria Andrea", "SUPO SANTOS Grissel Valentina", "GARCIA AGUILAR Bruno Alberto", "ZEBALLOS IGLESIAS Leticia Sofia", "SALAZAR RAMIREZ Gabriel", "TAPIA BEJARANO Rafaela Carolina", "JUAREZ FERNANDEZ Daniela Alessandra", "BERNAL DEGLANE Alejandro Antonio", "VALVERDE RAMOS Genesis Alexandra", "CASTRO AMÉZQUITA Juan Manuel", "ARANA LLERENA Angel Valentino", "GONZALES SACA Martin Eduardo", "RIOS QUIROZ Dafne Luciana Valentina", "DELGADO CARBAJAL Mariajose", "ATENCIO ASTRULLA Uriel Umit", "MANRIQUE GALLEGOS Luis Armando", "BECERRA RENTERIA Sergio Patricio", "ALARCON VERA José Gabriel", "HUANCA BERROA Valeria Sofia", "BANDA GAMARRA Oriana Valentina", "CHAVEZ ANTUNEZ Pierina Fernanda", "URDAY MANRIQUE Barbara Sofia", "CHIRE ALPACA Luis Alonzo"], "4° B": ["MEDICO BENAVENTE Rafaela Aixa", "VELASQUEZ LUQUE Oriana Milagros", "TOVAR FLORES Jordan Emanuel", "LOPEZ ACERO Fergie Angeline", "CHAYAN PINTO Luana Sofia", "GÁRATE OBANDO Alvaro Omar Axel", "QUIÑONES VELÁSQUEZ Joaquin Jeremick", "ESCOBEDO JARA Rafaela Fabiana", "BERRÍOS APARICIO Sofia", "FERNANDEZ ALVAREZ Gianfranco Esteban", "RODRÍGUEZ ARCE Esteban Raúl", "WERNER ZELA Robert Joaquín", "ARIAS ALARCÓN Alexandra Andrea", "NIETO JAÉN Joaquin Jose", "SEGOVIA RONDON Laura Jazmín", "PAZ MACHICADO Samantha Esperanza", "FLORES TAMO Luis Joaquín", "BALLÓN FERNÁNDEZ Joaquín Gabriel", "SUCLLA DIAZ Ana Belen", "CHAMBI SIRENA Victor Alonso", "HUAYNA CAMARA Fabricio Mateo", "MEZA ROMERO Ian Imanol", "PINTO CARDENAS Matias José", "GAMA CABRERA Daniel Alfredo", "CANO SALAS Mikaela Victoria", "NOEL CORDOVA Matias Sebastian", "SANCHEZ BAHAMONDES Matias Alonso", "MALLEA DELGADO Francesca Alexia", "GARCIA NAVARRETE Stephany Nicoll", "CERDEÑA ROSEMBERG Lucas"], "4° C": ["DELGADO CHÁVEZ Diego Matias", "RONDAN ZUÑIGA Antonella Mireya", "SALAS TORRES Alessandro Nicolas", "OBANDO VALDIVIA Matthew Josué", "SUEROS GUTARRA Sofia Isabel", "MIRANDA NEIRA Matias Miguel", "ALVAREZ CHALCO Daniel Orlando", "TORRES COCHON Brissa Dayana", "AGUILAR ARENAS Santiago Nicolas", "VALLENAS HUARAKA Joaquin Armando", "GONZALES ARÉVALO Joaquín Alonso", "MUÑOZ NEIRA Juana Micaela", "NAVARRETE BENAVIDES Esteban Leonardo", "REBOUL DIAZ Mathéo Ezzar Claude", "VALDIVIA AGUIRRE Mateo Daniel", "TACUSI PEREZ Gabriel Sebastian", "BUSTAMANTE ESPINOZA Micaela Fabiana", "RETAMOZO NEYRA Adrian Jeanpierr", "ORTÍZ ARROYO Fabiana Vanessa", "TAPIA LIRA Oscar Andre", "CHAVEZ GONZALES Mateo Nicolás", "PINTO VÁSQUEZ Isabella Karina", "ALVAREZ HUERTA Estefano Valentino", "CYRAN ARAUJO Andressa Guadalupe", "SAAVEDRA MEDINA Valeria Natived", "TEJADA CENEDESE Miqueas Andrés", "MEJIA YANA Gustavo Adrián", "ROCHA MERCADO Mathias Eduardo", "CHIAPPE LAMAURE Valeria Xiomara"], "5° A": ["GRGICEVIC AVILA Mauricio Alexander", "BARRIONUEVO ROSEMBERG Alejandra", "ZÚÑIGA ORTEGA Mariana Alejandra", "MIANI CONCHA Camila Guadalupe", "MORENO FLORES Melissa Valeria", "HIDALGO ANCASI Kiara Alessandra", "QUINTANILLA KARANOVIC Luna Zoe", "CLAUX LAKOMY Amira Luciana", "VELA YATACO Alesio Rafael", "GONZALES LAYME Eduardo Hector", "SCHUTTE LAZO Jean Paul", "CALLASACA CHAVEZ Alexandra Camila", "BERNAL JIMENEZ Matheo Nícolas", "NUÑEZ NUÑEZ Sofia Andrea", "MAMANI AGUIRRE Lorena Margot", "PORRAS NUÑEZ Juan Salvador", "CAYO CARBAJAL Fabiana Belen", "SARDÓN VALDIVIA Samantha Gabriella", "LEON CHAMBI Matias Andre", "OVIEDO FLORES Ana Graciela", "EZRATTY CHÁVEZ Mariana Kamila", "CERVERA TITTO Alejandro Alonso", "PORTUGAL GALLEGOS Emilia Fernanda", "BUENO DIAZ Leonardo Andrés", "BAHAMONDES OCHOA Samuel", "PÉREZ PALMA ROSALES Ariana Rafaela", "RODRIGUEZ CUZZI RAMOS Alejandro", "UGARTE CONCHA Luciana Constanza"], "5° B": ["ARENAS RAMOS Juan Piero", "CHOQUE TERAN Mariana Camila", "OJEDA NIETO Carla Irina", "BARRANTES VILCA Camila Michelle", "GALLEGOS PINTO Nicole Milena", "MEZA DELGADO Jhordan Gabriel", "SALINAS TEJADA Luciana Noemi", "GALDOS LOZADA Lucciana", "GUITTON JUAREZ Jhordan Axel Felix", "MONGRUT FIGUEROA Grazzia Elizabeth", "MEDINA ZAPATA Grecia Fernanda", "PADILLA ORTIZ Franco Adrian", "URDAY ALVAREZ Lia Danae", "CHAYAN PINTO Sergio Rafael", "CRUZ KASPARETTE Renata Micaela", "MEDINA ABRILL Renato Andres", "LUNA SALINAS Diego Alejandro", "CUADROS HUAYNA Luana Sofia", "ROSADO PEÑA Rodrigo Ernesto", "PONCE MARTEL Alessia", "EQUISE SANCHEZ Aylen Luciana", "GOMEZ LUIZAGA Juan Diego", "ROSAS LIMAYMANTA Cesia Andrea", "SOSA BAZAN Andy Nicolas", "FUENTES PORTUGAL Leandro Aarón", "AGUILAR COLLADO Luana Alexia", "MORALES PAZ Carlos Eduardo", "MEZA GALLEGOS Enzo Jordano", "NÚÑEZ CANALES Matias Gabriel", "VILLAR CHAVEZ Isabella Janine", "MANZANO QUISPE Juan José"], "5° C": ["VELEZMORO ROSADO Santiago Ramiro", "OVIEDO FLORES Ana Fernanda", "PINTO RODRIGUEZ Piero Andre", "VALDEIGLESIAS CHACON Sebastian Adolfo", "SALAS SALINAS Antuaneth", "LEYVA TORRES Illari Nazareth", "CARBAJAL LÓPEZ Isaac Marco Gabriel", "RIVERA DELGADO Yvanna Milagros", "HURTADO BARRIOS Leonardo Joaquín", "BÉJAR QUINTAZI Héctor Yazid", "OJEDA CRUZ Renzo Matías", "ALARCÓN CANO Santiago Gabriel", "ZORRILLA ARRAYA Fernanda Luciana", "MARIÑO LLERENA Lucía De Fátima", "SOLANO GARCIA Sofia Camila", "LA ROSA RODRIGUEZ Catalina", "ARAGÓN SANCHEZ José Francisco", "COHAILA ROSELL Antonio Ignacio", "CERDEÑA FARFÁN Sujeiri Solire", "HUILLCAYA GALLEGOS Leopoldo Franco", "BUENO DIAZ Alejandro Nicolás", "PEREA ZEBALLOS Luana Gracia", "MELÉNDEZ ACURIO Luciana Camila", "LOPEZ ACERO Mijael Paul", "AYBAR CALDERON Daniela Nicole Thany", "VALDIVIA CHIRINOS Luciana Nicol", "LINARES CHAVEZ Nicolas Matias", "ALARCON DIAZ Mathias Manuel", "MAZZA CORNEJO Nikol Stefany"]};
 const MESAS_DIST = {"1° A": {"0": 1, "1": 1, "2": 1, "3": 1, "4": 1, "5": 2, "6": 2, "7": 2, "8": 2, "9": 2, "10": 3, "11": 3, "12": 3, "13": 3, "14": 3, "15": 4, "16": 4, "17": 4, "18": 4, "19": 4, "20": 5, "21": 5, "22": 5, "23": 5, "24": 5, "25": 6, "26": 6, "27": 6, "28": 6, "29": 6}, "1° B": {"0": 1, "1": 1, "2": 1, "3": 1, "4": 1, "5": 2, "6": 2, "7": 2, "8": 2, "9": 2, "10": 3, "11": 3, "12": 3, "13": 3, "14": 3, "15": 4, "16": 4, "17": 4, "18": 4, "19": 4, "20": 5, "21": 5, "22": 5, "23": 5, "24": 5, "25": 6, "26": 6, "27": 6, "28": 6}, "1° C": {"0": 1, "1": 1, "2": 1, "3": 1, "4": 1, "5": 2, "6": 2, "7": 2, "8": 2, "9": 2, "10": 3, "11": 3, "12": 3, "13": 3, "14": 3, "15": 4, "16": 4, "17": 4, "18": 4, "19": 4, "20": 5, "21": 5, "22": 5, "23": 5, "24": 5, "25": 6, "26": 6, "27": 6, "28": 6, "29": 6}, "2° A": {"0": 1, "1": 1, "2": 1, "3": 1, "4": 1, "5": 2, "6": 2, "7": 2, "8": 2, "9": 2, "10": 3, "11": 3, "12": 3, "13": 3, "14": 3, "15": 4, "16": 4, "17": 4, "18": 4, "19": 4, "20": 5, "21": 5, "22": 5, "23": 5, "24": 5, "25": 6, "26": 6, "27": 6, "28": 6, "29": 6}, "2° B": {"0": 1, "1": 1, "2": 1, "3": 1, "4": 1, "5": 2, "6": 2, "7": 2, "8": 2, "9": 2, "10": 3, "11": 3, "12": 3, "13": 3, "14": 3, "15": 4, "16": 4, "17": 4, "18": 4, "19": 4, "20": 5, "21": 5, "22": 5, "23": 5, "24": 5, "25": 6, "26": 6, "27": 6, "28": 6, "29": 6}, "2° C": {"0": 1, "1": 1, "2": 1, "3": 1, "4": 1, "5": 2, "6": 2, "7": 2, "8": 2, "9": 2, "10": 3, "11": 3, "12": 3, "13": 3, "14": 3, "15": 4, "16": 4, "17": 4, "18": 4, "19": 4, "20": 5, "21": 5, "22": 5, "23": 5, "24": 5, "25": 6, "26": 6, "27": 6, "28": 6, "29": 6}, "3° A": {"0": 1, "1": 1, "2": 1, "3": 1, "4": 1, "5": 2, "6": 2, "7": 2, "8": 2, "9": 2, "10": 3, "11": 3, "12": 3, "13": 3, "14": 3, "15": 4, "16": 4, "17": 4, "18": 4, "19": 4, "20": 5, "21": 5, "22": 5, "23": 5, "24": 5, "25": 6, "26": 6, "27": 6, "28": 6}, "3° B": {"0": 1, "1": 1, "2": 1, "3": 1, "4": 1, "5": 2, "6": 2, "7": 2, "8": 2, "9": 2, "10": 3, "11": 3, "12": 3, "13": 3, "14": 3, "15": 4, "16": 4, "17": 4, "18": 4, "19": 4, "20": 5, "21": 5, "22": 5, "23": 5, "24": 6, "25": 6, "26": 6, "27": 6}, "3° C": {"0": 1, "1": 1, "2": 1, "3": 1, "4": 1, "5": 2, "6": 2, "7": 2, "8": 2, "9": 2, "10": 3, "11": 3, "12": 3, "13": 3, "14": 3, "15": 4, "16": 4, "17": 4, "18": 4, "19": 5, "20": 5, "21": 5, "22": 5, "23": 5, "24": 6, "25": 6, "26": 6, "27": 6, "28": 6}, "4° A": {"0": 1, "1": 1, "2": 1, "3": 1, "4": 1, "5": 2, "6": 2, "7": 2, "8": 2, "9": 2, "10": 3, "11": 3, "12": 3, "13": 3, "14": 3, "15": 4, "16": 4, "17": 4, "18": 4, "19": 4, "20": 5, "21": 5, "22": 5, "23": 5, "24": 5, "25": 6, "26": 6, "27": 6, "28": 6}, "4° B": {"0": 1, "1": 1, "2": 1, "3": 1, "4": 1, "5": 2, "6": 2, "7": 2, "8": 2, "9": 2, "10": 3, "11": 3, "12": 3, "13": 3, "14": 3, "15": 4, "16": 4, "17": 4, "18": 4, "19": 4, "20": 5, "21": 5, "22": 5, "23": 5, "24": 5, "25": 6, "26": 6, "27": 6, "28": 6, "29": 6}, "4° C": {"0": 1, "1": 1, "2": 1, "3": 1, "4": 1, "5": 2, "6": 2, "7": 2, "8": 2, "9": 2, "10": 3, "11": 3, "12": 3, "13": 3, "14": 3, "15": 4, "16": 4, "17": 4, "18": 4, "19": 4, "20": 5, "21": 5, "22": 5, "23": 5, "24": 5, "25": 6, "26": 6, "27": 6, "28": 6}, "5° A": {"0": 1, "1": 1, "2": 1, "3": 1, "4": 1, "5": 2, "6": 2, "7": 2, "8": 2, "9": 2, "10": 3, "11": 3, "12": 3, "13": 3, "14": 3, "15": 4, "16": 4, "17": 4, "18": 4, "19": 4, "20": 5, "21": 5, "22": 5, "23": 5, "24": 6, "25": 6, "26": 6, "27": 6}, "5° B": {"0": 1, "1": 1, "2": 1, "3": 1, "4": 1, "5": 1, "6": 2, "7": 2, "8": 2, "9": 2, "10": 2, "11": 3, "12": 3, "13": 3, "14": 3, "15": 3, "16": 4, "17": 4, "18": 4, "19": 4, "20": 4, "21": 5, "22": 5, "23": 5, "24": 5, "25": 5, "26": 6, "27": 6, "28": 6, "29": 6, "30": 6}, "5° C": {"0": 1, "1": 1, "2": 1, "3": 1, "4": 1, "5": 2, "6": 2, "7": 2, "8": 2, "9": 2, "10": 3, "11": 3, "12": 3, "13": 3, "14": 3, "15": 4, "16": 4, "17": 4, "18": 4, "19": 4, "20": 5, "21": 5, "22": 5, "23": 5, "24": 5, "25": 6, "26": 6, "27": 6, "28": 6}};
+
+// ── LISTAS DE COTEJO con escala de desempeño (por grado/práctica) ──────────
+const LISTAS_COTEJO = {
+  caida: {  // 2° - Caída Libre
+    titulo: "Caída Libre",
+    grado: "2°",
+    C20: [
+      {num:1, tag:"G", txt:"Formula las tres hipótesis completas con justificación que conecta causa y efecto."},
+      {num:2, tag:"S", txt:"Participa activamente en todas las etapas de la sesión (montaje, datos, análisis y cierre)."},
+      {num:3, tag:"S", txt:"Verifica las condiciones experimentales y registra los datos reales obtenidos."},
+      {num:4, tag:"G", txt:"Completa las tablas de datos y la sección de resultados con valores coherentes."},
+      {num:5, tag:"G", txt:"Redacta cuatro conclusiones propias con dato numérico y argumento que conecta resultados con la teoría."},
+    ],
+    C21: [
+      {num:6, tag:"G", txt:"Explica el efecto del área en la caída mencionando masa constante, área variable y resistencia del aire, relacionando la tendencia con sus datos."},
+      {num:7, tag:"G", txt:"Nombra el tiempo de reacción, explica su efecto sobre g y el significado de la recta h vs. t² usando sus propios datos."},
+      {num:8, tag:"S", txt:"Aporta interpretaciones propias al análisis del equipo, conectando datos con la teoría."},
+      {num:9, tag:"S", txt:"Se mantiene atento durante el cierre y responde con seguridad las preguntas del docente."},
+    ],
+    C22: [
+      {num:10, tag:"G", txt:"Realiza el montaje experimental con alturas correctas usando wincha y plomada, aplicando técnica de suelta sin impulso en todas las repeticiones."},
+      {num:11, tag:"G", txt:"Construye ambas gráficas con ejes rotulados, escala uniforme, puntos correctos y línea de ajuste con regla."},
+      {num:12, tag:"G", txt:"Identifica dos fuentes de error con su efecto sobre g e indica una mejora concreta para cada una."},
+      {num:13, tag:"S", txt:"Asume y sostiene su rol en el equipo durante toda la sesión, apoyando sin reemplazar el trabajo de los demás."},
+    ]
+  },
+  cg: {  // 3° - Centro de Gravedad y Equilibrio
+    titulo: "Centro de Gravedad y Equilibrio",
+    grado: "3°",
+    C20: [
+      {num:1, tag:"G", txt:"Formula las hipótesis completas con justificación que conecta causa y efecto."},
+      {num:2, tag:"S", txt:"Participa activamente en todas las etapas de la sesión (montaje, datos, análisis y cierre)."},
+      {num:3, tag:"S", txt:"Verifica las condiciones experimentales y registra los datos reales obtenidos."},
+      {num:4, tag:"G", txt:"Completa las tablas de datos y la sección de resultados con valores coherentes."},
+      {num:5, tag:"G", txt:"Redacta conclusiones propias con dato numérico y argumento que conecta resultados con la teoría."},
+    ],
+    C21: [
+      {num:6, tag:"G", txt:"Explica la ubicación del centro de gravedad en función de la distribución de masa del objeto, relacionando su posición con los datos obtenidos."},
+      {num:7, tag:"G", txt:"Describe las condiciones de equilibrio estable, inestable e indiferente usando ejemplos propios de la práctica."},
+      {num:8, tag:"S", txt:"Aporta interpretaciones propias al análisis del equipo, conectando datos con la teoría."},
+      {num:9, tag:"S", txt:"Se mantiene atento durante el cierre y responde con seguridad las preguntas del docente."},
+    ],
+    C22: [
+      {num:10, tag:"G", txt:"Realiza el montaje experimental con la técnica adecuada para localizar el centro de gravedad en todas las repeticiones."},
+      {num:11, tag:"G", txt:"Construye gráficas con ejes rotulados, escala uniforme, puntos correctos y línea de ajuste con regla."},
+      {num:12, tag:"G", txt:"Identifica fuentes de error con su efecto sobre los resultados e indica una mejora concreta para cada una."},
+      {num:13, tag:"S", txt:"Asume y sostiene su rol en el equipo durante toda la sesión, apoyando sin reemplazar el trabajo de los demás."},
+    ]
+  },
+  trabajo: {  // 4° - Trabajo Mecánico
+    titulo: "Trabajo Mecánico (Smart Cart)",
+    grado: "4°",
+    C20: [
+      {num:1, tag:"G", txt:"Formula las hipótesis completas con predicción clara y justificación que conecta causa y efecto."},
+      {num:2, tag:"S", txt:"Participa activamente en todas las etapas de la sesión (montaje, datos, análisis y cierre)."},
+      {num:3, tag:"S", txt:"Verifica las condiciones experimentales y registra los datos reales obtenidos."},
+      {num:4, tag:"G", txt:"Completa las tablas de datos y la sección de resultados con valores coherentes."},
+      {num:5, tag:"G", txt:"Redacta conclusiones propias con dato numérico y argumento que conecta resultados con la teoría."},
+    ],
+    C21: [
+      {num:6, tag:"G", txt:"Explica la relación entre fuerza, desplazamiento y trabajo mecánico, relacionando la tendencia con sus datos experimentales."},
+      {num:7, tag:"G", txt:"Interpreta la gráfica F vs. d identificando la pendiente y el área bajo la curva como trabajo realizado."},
+      {num:8, tag:"S", txt:"Aporta interpretaciones propias al análisis del equipo, conectando datos con la teoría."},
+      {num:9, tag:"S", txt:"Se mantiene atento durante el cierre y responde con seguridad las preguntas del docente."},
+    ],
+    C22: [
+      {num:10, tag:"G", txt:"Configura y opera el Smart Cart correctamente en todas las repeticiones, obteniendo datos consistentes."},
+      {num:11, tag:"G", txt:"Construye gráficas con ejes rotulados, escala uniforme, puntos correctos y línea de ajuste con regla."},
+      {num:12, tag:"G", txt:"Identifica fuentes de error con su efecto sobre los resultados e indica una mejora concreta para cada una."},
+      {num:13, tag:"S", txt:"Asume y sostiene su rol en el equipo durante toda la sesión, apoyando sin reemplazar el trabajo de los demás."},
+    ]
+  },
+  mas: {  // 5° - MAS masa-resorte
+    titulo: "MAS masa-resorte",
+    grado: "5°",
+    C20: [
+      {num:1, tag:"G", txt:"Formula las hipótesis completas con predicción clara y justificación que conecta causa y efecto."},
+      {num:2, tag:"S", txt:"Participa activamente en todas las etapas de la sesión (montaje, datos, análisis y cierre)."},
+      {num:3, tag:"S", txt:"Verifica las condiciones experimentales y registra los datos reales obtenidos."},
+      {num:4, tag:"G", txt:"Completa las tablas de datos y la sección de resultados con valores coherentes."},
+      {num:5, tag:"G", txt:"Redacta conclusiones propias con dato numérico y argumento que conecta resultados con la teoría."},
+    ],
+    C21: [
+      {num:6, tag:"G", txt:"Explica la relación entre masa, constante del resorte y período del MAS, relacionando la tendencia con sus datos."},
+      {num:7, tag:"G", txt:"Interpreta la gráfica T² vs. m identificando la pendiente como 4π²/k y calcula k experimental."},
+      {num:8, tag:"S", txt:"Aporta interpretaciones propias al análisis del equipo, conectando datos con la teoría."},
+      {num:9, tag:"S", txt:"Se mantiene atento durante el cierre y responde con seguridad las preguntas del docente."},
+    ],
+    C22: [
+      {num:10, tag:"G", txt:"Realiza el montaje del sistema masa-resorte con la técnica adecuada y mide el período con cronómetro de forma consistente en todas las repeticiones."},
+      {num:11, tag:"G", txt:"Construye gráficas con ejes rotulados, escala uniforme, puntos correctos y línea de ajuste con regla."},
+      {num:12, tag:"G", txt:"Identifica fuentes de error con su efecto sobre k e indica una mejora concreta para cada una."},
+      {num:13, tag:"S", txt:"Asume y sostiene su rol en el equipo durante toda la sesión, apoyando sin reemplazar el trabajo de los demás."},
+    ]
+  }
+};
+
 
 const SECS = Object.keys(ALUMNOS);
 const NVL  = ["AD","A","B","C"];
@@ -889,9 +1093,9 @@ function goTo(id){
   if(id==='s-cfg-seccion') renderCfgSeccion();
   if(id==='s-editor-rubrica'){erComp='C20';erRender();}
   if(id==='s-config'){
-    renderCfgRubricas();
-    cfgTab('rub');
-    var gs=document.getElementById('gestor-sec');if(gs)gs.value=st.sec;
+    renderCustomRubricas();
+    cfgCat('inst');
+    var gs=document.getElementById('gestor-sec'); if(gs) renderGestorAlumnos(gs.value);
   }
   if(id==='s-editor-rubrica'){ erComp='C20'; erRender(); }
   updateBnav(id);
@@ -908,10 +1112,12 @@ function goTo(id){
     var gs=document.getElementById('asist-grado');
     if(gs) gs.value=st.grado;
     asistPopularGrado(st.grado);
-    // sync current section
     var ss=document.getElementById('asist-sec');
     var secOpts=Object.keys(ALUMNOS).filter(function(k){return k.startsWith(st.grado+'°');});
     if(secOpts.includes(st.sec)&&ss){ ss.value=st.sec; asistSec=st.sec; }
+    // Sincronizar selector de sesión con práctica activa
+    var selSes=document.getElementById('asist-sesion');
+    if(selSes&&st.practica) selSes.value=st.practica;
     renderAsistLista();
   }
 }
@@ -998,6 +1204,7 @@ function renderCalificar(){
   st.compMesa='C20'; st.compAl='C20';
   selComp('C20'); selCompAl('C20');
   swTab('A');
+  updateNotasRT();
 }
 function swTab(t){
   document.getElementById('tabA').classList.toggle('on',t==='A');
@@ -1047,6 +1254,50 @@ function setMN(des,nivel,btn){
   const r=RUBRICAS[st.practica]; const des2=r[st.compMesa];
   const filled=des2.filter(d=>mesaNivs[sec][m][d]).length;
   document.getElementById('comp-info').textContent=`${COMP_DESC[st.compMesa]} · ${filled}/${des2.length} asignados`;
+  // update real-time nota display
+  updateNotasRT();
+}
+function updateNotasRT(){
+  const sec=st.sec; const m=st.mesa; const r=RUBRICAS[st.practica];
+  if(!r) return;
+  // Para calcular nota en tiempo real de la mesa usamos mesaNivs
+  // Simular una nota: promedio de descriptores marcados por competencia
+  ['C20','C21','C22'].forEach(function(comp){
+    var des=r[comp]; var vals=des.map(function(d){return mesaNivs[sec]?.[m]?.[d]||null;}).filter(Boolean);
+    var nota=null;
+    if(vals.length>0){
+      var pts={'AD':4,'A':3,'B':2,'C':1};
+      var sum=vals.reduce(function(s,v){return s+(pts[v]||0);},0)/vals.length;
+      nota=sum>=3.5?'AD':sum>=2.5?'A':sum>=1.5?'B':'C';
+    }
+    var el=document.getElementById('rt-'+comp);
+    if(el){
+      el.textContent=nota||'—';
+      el.className='nota-rt-val '+(nota?'tag '+nc(nota):'');
+    }
+  });
+  // Nota general: promedio de las tres competencias
+  var notaC20=_rtComp('C20'); var notaC21=_rtComp('C21'); var notaC22=_rtComp('C22');
+  var todas=[notaC20,notaC21,notaC22].filter(Boolean);
+  var notaFinal=null;
+  if(todas.length>0){
+    var pts={'AD':4,'A':3,'B':2,'C':1};
+    var sum=todas.reduce(function(s,v){return s+(pts[v]||0);},0)/todas.length;
+    notaFinal=sum>=3.5?'AD':sum>=2.5?'A':sum>=1.5?'B':'C';
+  }
+  var elN=document.getElementById('rt-NOTA');
+  if(elN){
+    elN.textContent=notaFinal||'—';
+    elN.className='nota-rt-val '+(notaFinal?'tag '+nc(notaFinal):'');
+  }
+}
+function _rtComp(comp){
+  const sec=st.sec; const m=st.mesa; const r=RUBRICAS[st.practica]; if(!r) return null;
+  var des=r[comp]; var vals=des.map(function(d){return mesaNivs[sec]?.[m]?.[d]||null;}).filter(Boolean);
+  if(!vals.length) return null;
+  var pts={'AD':4,'A':3,'B':2,'C':1};
+  var sum=vals.reduce(function(s,v){return s+(pts[v]||0);},0)/vals.length;
+  return sum>=3.5?'AD':sum>=2.5?'A':sum>=1.5?'B':'C';
 }
 function aplicarMesa(){
   const sec=st.sec; const m=st.mesa; const allD=getAllDes();
@@ -1458,6 +1709,94 @@ function actualizarSelectsPractica(){
   });
 }
 
+
+// ── Ajustes: categorías y sub-tabs ────────────────────────────────────────
+function cfgCat(cat){
+  ['inst','gest'].forEach(function(c){
+    var btn=document.getElementById('cfg-cat-'+c);
+    var panel=document.getElementById('cfg-cat-panel-'+c);
+    if(btn) btn.classList.toggle('on', c===cat);
+    if(panel) panel.style.display=(c===cat)?'block':'none';
+  });
+  if(cat==='inst') cfgInst('rub');
+  if(cat==='gest'){ var s=document.getElementById('gestor-sec'); if(s) renderGestorAlumnos(s.value); }
+}
+function cfgInst(tab){
+  ['rub','cotejo','escala','otros'].forEach(function(t){
+    var btn=document.getElementById('cfg-inst-'+t);
+    var panel=document.getElementById('cfg-inst-panel-'+t);
+    if(btn) btn.classList.toggle('on', t===tab);
+    if(panel) panel.style.display=(t===tab)?'block':'none';
+  });
+  if(tab==='cotejo') renderCotejoGrid();
+  if(tab==='escala') renderEscalaGrid();
+}
+// Backward compat: old cfgTab('rub'/'alm') now maps to new system
+function cfgTab(tab){
+  if(tab==='rub') cfgCat('inst');
+  else if(tab==='alm') cfgCat('gest');
+}
+
+function renderCotejoGrid(){
+  // Already rendered via buttons — visor cleared on select
+}
+function verCotejo(prac){
+  var lc=LISTAS_COTEJO[prac]; if(!lc) return;
+  var el=document.getElementById('cotejo-visor'); if(!el) return;
+  var html='<div style="font-weight:800;font-size:13px;margin-bottom:8px">'+lc.grado+' — '+lc.titulo+'</div>';
+  ['C20','C21','C22'].forEach(function(comp){
+    var defs=lc[comp];
+    var names={C20:'C20 — Indaga mediante métodos científicos',C21:'C21 — Explica el mundo físico',C22:'C22 — Diseña y produce soluciones tecnológicas'};
+    html+='<div class="comp-hdr">'+names[comp]+'</div>';
+    html+='<div class="card" style="padding:0;overflow:hidden;margin-bottom:8px"><table class="cotejo-tabla">';
+    html+='<thead><tr><th style="width:40px">#</th><th>Desempeño</th><th style="width:32px;text-align:center">AD</th><th style="width:32px;text-align:center">A</th><th style="width:32px;text-align:center">B</th><th style="width:32px;text-align:center">C</th></tr></thead><tbody>';
+    defs.forEach(function(d){
+      html+='<tr><td style="text-align:center;font-weight:800">'+d.num+'</td>';
+      html+='<td><span class="ctag-comp ctag-'+d.tag+'">'+d.tag+'</span>'+d.txt+'</td>';
+      html+='<td></td><td></td><td></td><td></td></tr>';
+    });
+    html+='</tbody></table></div>';
+  });
+  html+='<div class="muted" style="font-size:10px;margin-bottom:16px"><strong>[G]</strong> Evaluado en la Guía &nbsp; <strong>[S]</strong> Evaluado en la Sesión</div>';
+  el.innerHTML=html;
+}
+function renderEscalaGrid(){
+  // visor cleared on select
+}
+function verEscala(prac){
+  // Escala de desempeños = misma estructura que cotejo pero con descripción de niveles AD/A/B/C
+  var lc=LISTAS_COTEJO[prac]; if(!lc) return;
+  var el=document.getElementById('escala-visor'); if(!el) return;
+  var nivDesc={
+    AD:'Logro destacado: supera los indicadores esperados con evidencia clara.',
+    A:'Logro esperado: cumple todos los indicadores de manera satisfactoria.',
+    B:'En proceso: cumple parcialmente; necesita apoyo puntual.',
+    C:'En inicio: no cumple los indicadores o lo hace de forma mínima.'
+  };
+  var html='<div style="font-weight:800;font-size:13px;margin-bottom:8px">'+lc.grado+' — '+lc.titulo+'</div>';
+  // Escala de niveles
+  html+='<div class="card" style="padding:10px 12px;margin-bottom:10px">';
+  ['AD','A','B','C'].forEach(function(n){
+    var cls={AD:'tag-green',A:'tag-blue',B:'tag-amber',C:'tag-red'}[n]||'';
+    html+='<div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:6px"><span class="tag '+cls+'" style="flex-shrink:0;min-width:28px;text-align:center">'+n+'</span><span style="font-size:11px">'+nivDesc[n]+'</span></div>';
+  });
+  html+='</div>';
+  ['C20','C21','C22'].forEach(function(comp){
+    var defs=lc[comp];
+    var names={C20:'C20 — Indaga mediante métodos científicos',C21:'C21 — Explica el mundo físico',C22:'C22 — Diseña y produce soluciones tecnológicas'};
+    html+='<div class="comp-hdr">'+names[comp]+'</div>';
+    html+='<div class="card" style="padding:0;overflow:hidden;margin-bottom:8px"><table class="cotejo-tabla">';
+    html+='<thead><tr><th style="width:40px">#</th><th>Desempeño</th><th style="width:32px;text-align:center">AD</th><th style="width:32px;text-align:center">A</th><th style="width:32px;text-align:center">B</th><th style="width:32px;text-align:center">C</th></tr></thead><tbody>';
+    defs.forEach(function(d){
+      html+='<tr><td style="text-align:center;font-weight:800">'+d.num+'</td>';
+      html+='<td><span class="ctag-comp ctag-'+d.tag+'">'+d.tag+'</span>'+d.txt+'</td>';
+      html+='<td></td><td></td><td></td><td></td></tr>';
+    });
+    html+='</tbody></table></div>';
+  });
+  html+='<div class="muted" style="font-size:10px;margin-bottom:16px"><strong>[G]</strong> Evaluado en la Guía &nbsp; <strong>[S]</strong> Evaluado en la Sesión</div>';
+  el.innerHTML=html;
+}
 
 // ── BOTTOM NAV ─────────────────────────────────────────────────────────────
 const BNAV_MAP = {
@@ -2017,9 +2356,10 @@ function exportarTodo(){
 // ══════════════════════════════════════════════════════
 // ASISTENCIA
 // ══════════════════════════════════════════════════════
-var asistData = {}; // { sec: { fecha: { idx: 'P'|'A'|'T' } } }
-var asistSec = '2° A';
+var asistData = {};   // { sec: { fecha: { idx: 'P'|'A'|'T' } } }
+var asistSec  = '2° A';
 var asistFecha = '';
+var asistModo  = 'sec';  // 'sec' | 'mesa'
 
 function asistKey(sec){ return 'cipb2026/asistencia/'+sec.replace('° ','_'); }
 
@@ -2029,12 +2369,10 @@ function asistFechaHoy(){
 }
 
 function initAsistencia(){
-  // Set default date
   var fi=document.getElementById('asist-fecha');
   if(fi){ asistFecha=asistFechaHoy(); fi.value=asistFecha; fi.onchange=function(){asistFecha=this.value;renderAsistLista();}; }
-  // Populate sections
   asistPopularGrado(document.getElementById('asist-grado')?.value||'2');
-  // Load from Firebase
+  // Cargar datos desde Firebase
   var secs=Object.keys(ALUMNOS);
   secs.forEach(function(sec){
     dbGet(asistKey(sec),function(err,data){
@@ -2043,21 +2381,27 @@ function initAsistencia(){
   });
 }
 
-function asistPopularGrado(g){
-  var sel=document.getElementById('asist-sec'); if(!sel)return;
-  sel.innerHTML='';
-  Object.keys(ALUMNOS).filter(function(k){return k.startsWith(g+'°');}).forEach(function(k){
-    var o=document.createElement('option'); o.value=k; o.textContent=k;
-    if(k===asistSec) o.selected=true; sel.appendChild(o);
-  });
-  if(!Object.keys(ALUMNOS).filter(function(k){return k.startsWith(g+'°');}).includes(asistSec)){
-    asistSec=sel.value;
-  }
+function asistTab(modo){
+  asistModo=modo;
+  document.getElementById('atab-sec').classList.toggle('on',  modo==='sec');
+  document.getElementById('atab-mesa').classList.toggle('on', modo==='mesa');
+  var sesRow=document.getElementById('asist-sesion-row');
+  if(sesRow) sesRow.style.display=(modo==='mesa')?'block':'none';
   renderAsistLista();
 }
 
+function asistPopularGrado(g){
+  var sel=document.getElementById('asist-sec'); if(!sel)return;
+  sel.innerHTML='';
+  var secs=Object.keys(ALUMNOS).filter(function(k){return k.startsWith(g+'°');});
+  secs.forEach(function(k){
+    var o=document.createElement('option'); o.value=k; o.textContent=k;
+    if(k===asistSec) o.selected=true; sel.appendChild(o);
+  });
+  if(!secs.includes(asistSec)) asistSec=sel.value;
+  renderAsistLista();
+}
 function asistCambiarGrado(g){ asistPopularGrado(g); }
-
 function asistCambiarSec(sec){ asistSec=sec; renderAsistLista(); }
 
 function getAsistReg(sec,fecha){ return (asistData[sec]&&asistData[sec][fecha])||{}; }
@@ -2066,15 +2410,12 @@ function setAsistEstado(idx,estado){
   if(!asistData[asistSec]) asistData[asistSec]={};
   if(!asistData[asistSec][asistFecha]) asistData[asistSec][asistFecha]={};
   asistData[asistSec][asistFecha][idx]=estado;
-  updateAsistBtns(idx,estado);
-  updateAsistResumen();
-}
-
-function updateAsistBtns(idx,estado){
+  // Update button states
   ['P','A','T'].forEach(function(e){
     var btn=document.getElementById('ab-'+idx+'-'+e);
-    if(btn){ if(e===estado) btn.classList.add(e); else btn.classList.remove(btn.classList[1]||''); btn.className='ab'+(e===estado?' '+e:''); }
+    if(btn) btn.className='ab'+(e===estado?' '+e:'');
   });
+  updateAsistResumen();
 }
 
 function asistMarcarTodos(estado){
@@ -2088,17 +2429,40 @@ function updateAsistResumen(){
   var als=ALUMNOS[asistSec]||[];
   var p=0,a=0,t=0,sin=0;
   als.forEach(function(_,i){ var e=reg[i]; if(e==='P')p++; else if(e==='A')a++; else if(e==='T')t++; else sin++; });
-  var ep=document.getElementById('asist-count-p'), ea=document.getElementById('asist-count-a'), et=document.getElementById('asist-count-t');
-  if(ep) ep.textContent=p+(sin>0?' ('+sin+' sin marcar)':'');
+  var ep=document.getElementById('asist-count-p');
+  var ea=document.getElementById('asist-count-a');
+  var et=document.getElementById('asist-count-t');
+  if(ep) ep.textContent=p+(sin>0?' (+'+sin+')':'');
   if(ea) ea.textContent=a;
   if(et) et.textContent=t;
 }
 
-function renderAsistLista(){
-  var el=document.getElementById('asist-lista'); if(!el) return;
-  var als=ALUMNOS[asistSec]||[];
-  var asig=loadAsig(asistSec);
-  var reg=getAsistReg(asistSec,asistFecha);
+// ── Modo sección: lista simple alfabética ──────────────────────────────────
+function renderAsistModeSec(als, reg, el){
+  als.forEach(function(n, i){
+    var estado=reg[i]||'';
+    var row=document.createElement('div'); row.className='asist-row';
+    var parts=n.split(' ');
+    var apellido=parts[0]||''; var nombre=parts[2]||parts[1]||'';
+    row.innerHTML='<div class="asist-nombre"><strong>'+apellido+'</strong> '+nombre+'</div>'+
+      '<div class="asist-btns">'+
+      ['P','A','T'].map(function(e){
+        return '<button class="ab'+(estado===e?' '+e:'')+'" id="ab-'+i+'-'+e+'" onclick="setAsistEstado('+i+',\''+e+'\')">'+ e +'</button>';
+      }).join('')+
+      '</div>';
+    el.appendChild(row);
+  });
+}
+
+// ── Modo mesa: agrupado por mesa con contador y ligado a sesión ────────────
+function renderAsistModeMesa(als, reg, asig, el){
+  var sesion=document.getElementById('asist-sesion');
+  var pracLabel=sesion?sesion.options[sesion.selectedIndex].text:'';
+  // Encabezado
+  var hdr=document.createElement('div');
+  hdr.style.cssText='font-size:11px;color:var(--text2);margin-bottom:8px;padding:6px 10px;background:var(--bg2);border-radius:var(--r);border:1px solid var(--border)';
+  hdr.innerHTML='<i class="ti ti-link" style="margin-right:4px"></i>Sesión vinculada: <strong>'+pracLabel+'</strong>';
+  el.appendChild(hdr);
 
   // Group by mesa
   var byMesa={};
@@ -2108,33 +2472,49 @@ function renderAsistLista(){
     byMesa[m].push({n:n,i:i});
   });
 
-  el.innerHTML='';
   Object.keys(byMesa).sort(function(a,b){return a-b;}).forEach(function(m){
-    var card=document.createElement('div'); card.className='asist-card';
-    // Mesa count
     var grupo=byMesa[m];
-    var p=0,a=0,t=0; grupo.forEach(function(x){var e=reg[x.i];if(e==='P')p++;else if(e==='A')a++;else if(e==='T')t++;});
-    var hdr=document.createElement('div'); hdr.className='asist-mesa-hdr';
-    hdr.innerHTML='<span>Mesa '+m+'</span><span style="font-size:11px;font-weight:600;color:var(--text2)">'+grupo.length+' est.</span>';
-    card.appendChild(hdr);
+    var p=0,a=0,t=0;
+    grupo.forEach(function(x){var e=reg[x.i];if(e==='P')p++;else if(e==='A')a++;else if(e==='T')t++;});
+
+    var card=document.createElement('div'); card.className='asist-card';
+    var hdrEl=document.createElement('div'); hdrEl.className='asist-mesa-hdr';
+    hdrEl.innerHTML='<span><strong>Mesa '+m+'</strong></span>'+
+      '<span style="display:flex;gap:4px;font-size:10px">'+
+      (p?'<span class="asist-mesa-badge" style="background:var(--green-bg);color:var(--green-txt)">P:'+p+'</span>':'')+
+      (a?'<span class="asist-mesa-badge" style="background:var(--red-bg);color:var(--red-txt)">A:'+a+'</span>':'')+
+      (t?'<span class="asist-mesa-badge" style="background:var(--amber-bg);color:var(--amber-txt)">T:'+t+'</span>':'')+
+      '</span>';
+    card.appendChild(hdrEl);
 
     grupo.forEach(function(x){
       var estado=reg[x.i]||'';
       var row=document.createElement('div'); row.className='asist-row';
-      // Nombre abreviado: primer apellido + primer nombre
       var parts=x.n.split(' ');
-      var apellido=parts[0]||'';
-      var nombre=parts[2]||parts[1]||'';
+      var apellido=parts[0]||''; var nombre=parts[2]||parts[1]||'';
       row.innerHTML='<div class="asist-nombre"><strong>'+apellido+'</strong> '+nombre+'</div>'+
         '<div class="asist-btns">'+
-        '<button class="ab'+(estado==='P'?' P':'')+'" id="ab-'+x.i+'-P" onclick="setAsistEstado('+x.i+',\'P\')">P</button>'+
-        '<button class="ab'+(estado==='A'?' A':'')+'" id="ab-'+x.i+'-A" onclick="setAsistEstado('+x.i+',\'A\')">A</button>'+
-        '<button class="ab'+(estado==='T'?' T':'')+'" id="ab-'+x.i+'-T" onclick="setAsistEstado('+x.i+',\'T\')">T</button>'+
+        ['P','A','T'].map(function(e){
+          return '<button class="ab'+(estado===e?' '+e:'')+'" id="ab-'+x.i+'-'+e+'" onclick="setAsistEstado('+x.i+',\''+e+'\')">'+ e +'</button>';
+        }).join('')+
         '</div>';
       card.appendChild(row);
     });
     el.appendChild(card);
   });
+}
+
+function renderAsistLista(){
+  var el=document.getElementById('asist-lista'); if(!el) return;
+  el.innerHTML='';
+  var als=ALUMNOS[asistSec]||[];
+  var asig=loadAsig(asistSec);
+  var reg=getAsistReg(asistSec,asistFecha);
+  if(asistModo==='sec'){
+    renderAsistModeSec(als, reg, el);
+  } else {
+    renderAsistModeMesa(als, reg, asig, el);
+  }
   updateAsistResumen();
 }
 
@@ -2148,11 +2528,7 @@ function guardarAsistencia(){
   dbSet(asistKey(sec), asistData[sec], function(ok){
     if(btn){btn.innerHTML='<i class="ti ti-device-floppy"></i>';btn.disabled=false;}
     if(ok===false){ alert('Error al guardar. Verifica conexión.'); }
-    else {
-      // Visual feedback
-      var orig=btn?btn.innerHTML:'';
-      if(btn){btn.innerHTML='<i class="ti ti-check"></i>';setTimeout(function(){btn.innerHTML=orig;},1500);}
-    }
+    else { if(btn){btn.innerHTML='<i class="ti ti-check"></i>';setTimeout(function(){btn.innerHTML='<i class="ti ti-device-floppy"></i>';},1500);} }
   });
 }
 
@@ -2163,42 +2539,19 @@ function exportarAsistencia(){
     var fechas=Object.keys(asistData[sec]).sort();
     if(!fechas.length) return;
     var als=ALUMNOS[sec]||[];
-    var header=['N°','Estudiante'].concat(fechas);
+    var asig=loadAsig(sec);
+    var header=['N°','Estudiante','Mesa'].concat(fechas);
     var rows=[header];
     als.forEach(function(n,i){
-      var row=[i+1,n];
+      var mesa=asig[i]||'—';
+      var row=[i+1,n,'Mesa '+mesa];
       fechas.forEach(function(f){ row.push((asistData[sec][f]&&asistData[sec][f][i])||'-'); });
       rows.push(row);
     });
     var ws=XLSX.utils.aoa_to_sheet(rows);
-    var sheetName=sec.replace('°','').replace(' ','_').substring(0,31);
-    XLSX.utils.book_append_sheet(wb,ws,sheetName);
+    XLSX.utils.book_append_sheet(wb,ws,sec.replace('°','').replace(' ','_').substring(0,31));
   });
   XLSX.writeFile(wb,'Asistencia_CIPB_'+new Date().toISOString().slice(0,10)+'.xlsx');
-}
-
-// ── Migración: sincroniza ALUMNOS y MESAS_DIST a Firebase ──────────────────
-function migrarDistribucionMesas(){
-  if(localStorage.getItem('lab26_mesas_dist_v1')) return;
-  console.log('Migrando distribución de mesas a Firebase...');
-  var secs = Object.keys(MESAS_DIST);
-  var done = 0;
-  secs.forEach(function(sec){
-    var key = sec.replace('° ','_');
-    // Guardar orden nuevo de alumnos
-    dbSetDirect('cipb2026/alumnos/'+key, ALUMNOS[sec], function(){});
-    // Guardar asignación oficial de mesas
-    var asig = {};
-    var dist = MESAS_DIST[sec];
-    Object.keys(dist).forEach(function(k){ asig[k] = dist[k]; });
-    dbSetDirect('cipb2026/asig/'+key, asig, function(){
-      done++;
-      if(done >= secs.length){
-        localStorage.setItem('lab26_mesas_dist_v1','1');
-        console.log('Migración de mesas completa (' + secs.length + ' secciones).');
-      }
-    });
-  });
 }
 
 document.getElementById('np-fecha').valueAsDate=new Date();

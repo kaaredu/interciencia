@@ -1157,10 +1157,9 @@ function renderResumen(){
 // ══════════════════════════════════════════════════════
 function renderAsignar(){
   var sec=st.sec;var t=document.getElementById('asig-titulo');if(t)t.textContent='Asignar — '+sec;chipSel=null;
-  dbGet('cipb2026/asig/'+sec.replace('° ','_'),function(err,data){
-    if(!err&&data&&Object.keys(data).length>0){asigTemp={};Object.keys(data).forEach(function(k){var v=parseInt(data[k]);asigTemp[parseInt(k)]=(v>=1&&v<=6)?v:0;});}
-    else{asigTemp=Object.assign({},loadAsig(sec));}renderAsigContenido();
-  });
+  // MESAS_DIST es la fuente oficial - ignorar asig guardado en Firebase
+  asigTemp=Object.assign({},loadAsig(sec));
+  renderAsigContenido();
 }
 
 function renderAsigContenido(){

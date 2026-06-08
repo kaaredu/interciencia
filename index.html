@@ -951,10 +951,11 @@ let st = {
 // Devuelve el instrumento activo (RUBRICAS o LISTAS_COTEJO) según st.metodo
 function getInstrumento(prac){
   prac = prac || st.practica;
+  if(!prac) return RUBRICAS['caida'];
   if(st.metodo === 'cotejo' || st.metodo === 'escala'){
-    return LISTAS_COTEJO[prac] || RUBRICAS[prac];
+    return LISTAS_COTEJO[prac] || RUBRICAS[prac] || RUBRICAS['caida'];
   }
-  return RUBRICAS[prac];
+  return RUBRICAS[prac] || RUBRICAS['caida'];
 }
 // Descriptores de una competencia según instrumento activo
 function getDes(prac, comp){
@@ -1228,6 +1229,15 @@ function renderCalificar(){
   const cal=contarCal(st.sec,st.mesa); const tot=getAlsMesa(st.sec,st.mesa).length;
   document.getElementById('cal-prog').textContent=`${cal}/${tot}`;
   st.compMesa='C20'; st.compAl='C20';
+  // Restaurar mesaNivs desde notas guardadas (primer alumno de la mesa)
+  const sec=st.sec; const m=st.mesa;
+  if(!mesaNivs[sec]) mesaNivs[sec]={};
+  if(!mesaNivs[sec][m]) mesaNivs[sec][m]={};
+  const primeraAl=getAlsMesa(sec,m)[0];
+  if(primeraAl && notas[sec]?.[m]?.[primeraAl.i]){
+    const saved=notas[sec][m][primeraAl.i];
+    getAllDes().forEach(d=>{ if(saved[d]) mesaNivs[sec][m][d]=saved[d]; });
+  }
   selComp('C20'); selCompAl('C20');
   swTab('A');
   updateNotasRT();
@@ -1267,13 +1277,17 @@ function renderMesaDes(){
   document.getElementById('btn-next').innerHTML=idx===2?'<i class="ti ti-check"></i> Listo':'Siguiente <i class="ti ti-chevron-right"></i>';
   des.forEach((d,i)=>{
     const raw=rawDes[i];
-    const tag = typeof raw==='object' ? raw.tag : (d.includes('(D)')?'D':'G');
+    // Safe tag: LISTAS_COTEJO items are {num,tag,txt}; RUBRICAS items are strings
+    const tag = (raw && typeof raw==='object' && raw.tag) ? raw.tag
+                : d.includes('(D)') ? 'D' : 'G';
     const txt = d.replace(' (D)','');
-    const cur=mesaNivs[sec][m][d]||null;
-    const blk=document.createElement('div'); blk.className='des-blk';
-    const tagCls = tag==='S'?'ctag-d':tag==='D'?'ctag-d':'ctag-g';
+    const cur = mesaNivs[sec]?.[m]?.[d] || null;
+    const blk = document.createElement('div'); blk.className='des-blk';
+    const tagCls = (tag==='S'||tag==='D') ? 'ctag-d' : 'ctag-g';
+    // Escape descriptor for inline onclick
+    const dEsc = d.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
     blk.innerHTML=`<div class="des-lbl"><span class="ctag ${tagCls}">${tag}</span>${txt}</div>
-      <div class="mopts">${NVL.map(n=>`<button class="mb ${cur===n?n:''}" onclick="setMN('${d}','${n}',this)">${n}</button>`).join('')}</div>`;
+      <div class="mopts">${NVL.map(n=>`<button class="mb ${cur===n?n:''}" onclick="setMN('${dEsc}','${n}',this)">${n}</button>`).join('')}</div>`;
     el.appendChild(blk);
   });
 }
@@ -1334,11 +1348,15 @@ function _rtComp(comp){
 }
 function aplicarMesa(){
   const sec=st.sec; const m=st.mesa; const allD=getAllDes();
+  if(!notas[sec]) notas[sec]={};
+  if(!notas[sec][m]) notas[sec][m]={};
   getAlsMesa(sec,m).forEach(({i})=>{
-    if(!notas[sec]) notas[sec]={};
-    if(!notas[sec][m]) notas[sec][m]={};
     if(!notas[sec][m][i]) notas[sec][m][i]={};
-    allD.forEach(d=>{ const mv=mesaNivs[sec]?.[m]?.[d]; if(mv) notas[sec][m][i][d]=mv; });
+    // Copiar nivel grupal de la mesa a CADA alumno del grupo
+    allD.forEach(d=>{
+      const mv=mesaNivs[sec]?.[m]?.[d];
+      if(mv) notas[sec][m][i][d]=mv;
+    });
   });
   saveNotas(sec); goTo('s-resumen');
 }
@@ -1369,7 +1387,7 @@ function renderDesAl(sec,m,idx){
   comps.forEach(function(comp){
     if(st.compAl==='ALL'){var lbl=document.createElement('div');lbl.className='sec-lbl';lbl.textContent=comp;container.appendChild(lbl);}
     getDes(st.practica,comp).forEach(function(d){
-      var isD=d.includes('(D)');var cur=(notas[sec]&&notas[sec][m]&&notas[sec][m][idx]&&notas[sec][m][idx][d])||null;
+      var isD=d.includes('(D)');var cur=(notas[sec]&&notas[sec][m]&&notas[sec][m][idx]&&notas[sec][m][idx][d])||(mesaNivs[sec]&&mesaNivs[sec][m]&&mesaNivs[sec][m][d])||null;
       var row=document.createElement('div');row.className='des-row';
       var lbl2=document.createElement('div');lbl2.className='des-lbl2';
       lbl2.innerHTML='<span style="font-size:9px;font-weight:800;padding:1px 4px;border-radius:3px;background:'+(isD?'var(--amber-bg)':'var(--bg3)')+'">'+( isD?'D':'G')+'</span> '+d.replace(' (D)','');
@@ -1581,6 +1599,8 @@ function calificarPractica(i){
   const p=practicas[i];
   st.practica = p.rubrica||'caida';
   st.metodo   = p.metodo||'rubrica';
+  // Sincronizar grado desde la práctica si está definido
+  if(p.grado) st.grado = p.grado;
   loadAll(); goTo('s-mesas');
 }
 
@@ -1589,7 +1609,7 @@ function calificarPractica(i){
 // ══════════════════════════════════════════════════════
 function buildRows(sec,practica){
   const savedP=st.practica; st.practica=practica;
-  loadAll();
+  // No llamar loadAll() aquí — notas ya están en memoria desde la última carga
   const rows=[['N°','Apellidos y Nombres','Mesa','C20 (AD/A/B/C)','C21 (AD/A/B/C)','C22 (AD/A/B/C)','Nivel final']];
   const asig=loadAsig(sec);
   getAls(sec).forEach((nombre,i)=>{

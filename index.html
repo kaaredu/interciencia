@@ -1138,6 +1138,7 @@ function goTo(id){
   if(id==='s-notas-sec_SKIP'){ const e=document.getElementById('ns-sec'); if(e) e.value=st.sec; nsVista='seccion'; nsTab('seccion'); }
   if(id==='s-asignar'){initAsigSelectors();renderAsignar();}
   if(id==='s-practicas') renderPracticas();
+  if(id==='s-nueva-practica') actualizarSelectsPractica();
   if(id==='s-asistencia'){
     var gs=document.getElementById('asist-grado');
     if(gs) gs.value=st.grado;
@@ -1746,6 +1747,7 @@ function guardarRubricaCustom(){
   if(btn){btn.innerHTML='<i class="ti ti-check"></i> ¡Guardada!';setTimeout(()=>{btn.innerHTML='<i class="ti ti-device-floppy"></i> Guardar rúbrica';goTo('s-config');},800);}
 }
 function actualizarSelectsPractica(){
+  // ── Selects de rúbrica ────────────────────────────────────────────────────
   ['ns-prac','dl-practica','np-rubrica'].forEach(id=>{
     const el=document.getElementById(id); if(!el)return;
     const existing=Array.from(el.options).map(o=>o.value);
@@ -1755,9 +1757,45 @@ function actualizarSelectsPractica(){
         opt.value=key; opt.textContent=`${r.nombre} — ${r.grado}`; el.appendChild(opt);
       }
     });
-    // Remove deleted ones
-    Array.from(el.options).forEach(opt=>{ if(!RUBRICAS[opt.value]) el.removeChild(opt); });
+    // Eliminar las que ya no existen (solo custom, no las 4 base)
+    const base=['caida','cg','trabajo','mas'];
+    Array.from(el.options).forEach(opt=>{
+      if(!base.includes(opt.value) && opt.value!=='custom' && !RUBRICAS[opt.value])
+        el.removeChild(opt);
+    });
   });
+
+  // ── Select de listas de cotejo (np-cotejo) ────────────────────────────────
+  const elC=document.getElementById('np-cotejo'); if(!elC) return;
+  // Reconstruir completo: fijas de LISTAS_COTEJO + rúbricas custom (usables como cotejo)
+  const prevVal=elC.value;
+  elC.innerHTML='';
+  // Listas fijas
+  const fijas={
+    caida: 'Caída Libre (2°) — 13 ítems',
+    cg:    'CG y Equilibrio (3°) — 13 ítems',
+    trabajo: 'Trabajo Mecánico (4°) — 13 ítems',
+    mas:   'MAS masa-resorte (5°) — 13 ítems',
+  };
+  Object.entries(fijas).forEach(([key,label])=>{
+    const opt=document.createElement('option');
+    opt.value=key; opt.textContent=label; elC.appendChild(opt);
+  });
+  // Listas personalizadas guardadas en LISTAS_COTEJO (si las hubiera)
+  Object.entries(LISTAS_COTEJO).forEach(([key,lc])=>{
+    if(fijas[key]) return; // ya está
+    const opt=document.createElement('option');
+    opt.value=key; opt.textContent=`${lc.titulo} (${lc.grado}) — personalizada`; elC.appendChild(opt);
+  });
+  // Rúbricas custom también disponibles como cotejo
+  const baseKeys=['caida','cg','trabajo','mas'];
+  Object.entries(RUBRICAS).forEach(([key,r])=>{
+    if(baseKeys.includes(key)) return;
+    const opt=document.createElement('option');
+    opt.value=key; opt.textContent=`${r.nombre} — ${r.grado} (rúbrica custom)`; elC.appendChild(opt);
+  });
+  // Restaurar selección previa si sigue disponible
+  if(prevVal && Array.from(elC.options).some(o=>o.value===prevVal)) elC.value=prevVal;
 }
 
 

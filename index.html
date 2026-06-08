@@ -414,19 +414,32 @@ label{font-size:12px;font-weight:600;color:var(--text2);display:block;margin-bot
     <label>Fecha de ejecución</label>
     <input type="date" id="np-fecha">
     <label>Método de evaluación</label>
-    <select id="np-metodo">
+    <select id="np-metodo" onchange="npMetodoChange(this.value)">
       <option value="rubrica">Rúbrica de desempeños (AD/A/B/C)</option>
-      <option value="cotejo">Lista de cotejo (Sí/No)</option>
-      <option value="escala">Escala de observación (1–5)</option>
+      <option value="cotejo">Lista de cotejo con escala (AD/A/B/C)</option>
+      <option value="escala">Escala de desempeños (AD/A/B/C)</option>
     </select>
-    <label>Rúbrica asociada</label>
-    <select id="np-rubrica">
-      <option value="caida">Caída Libre — 13 desempeños</option>
-      <option value="cg">CG y Equilibrio — 13 desempeños</option>
-      <option value="trabajo">Trabajo Mecánico Smart Cart — 13 desempeños</option>
-      <option value="mas">MAS masa-resorte — 13 desempeños</option>
-      <option value="custom">Personalizada</option>
-    </select>
+    <!-- Instrumento: rúbrica -->
+    <div id="np-row-rubrica">
+      <label>Rúbrica asociada</label>
+      <select id="np-rubrica">
+        <option value="caida">Caída Libre (2°) — 13 desempeños</option>
+        <option value="cg">CG y Equilibrio (3°) — 13 desempeños</option>
+        <option value="trabajo">Trabajo Mecánico (4°) — 13 desempeños</option>
+        <option value="mas">MAS masa-resorte (5°) — 13 desempeños</option>
+        <option value="custom">Personalizada</option>
+      </select>
+    </div>
+    <!-- Instrumento: cotejo / escala -->
+    <div id="np-row-cotejo" style="display:none">
+      <label>Lista de cotejo / Escala asociada</label>
+      <select id="np-cotejo">
+        <option value="caida">Caída Libre (2°) — 13 ítems</option>
+        <option value="cg">CG y Equilibrio (3°) — 13 ítems</option>
+        <option value="trabajo">Trabajo Mecánico (4°) — 13 ítems</option>
+        <option value="mas">MAS masa-resorte (5°) — 13 ítems</option>
+      </select>
+    </div>
     <label>Notas / descripción (opcional)</label>
     <textarea id="np-notas" placeholder="Materiales, observaciones, etc."></textarea>
     <button class="btn btn-p" onclick="guardarPractica()"><i class="ti ti-check"></i> Guardar práctica</button>
@@ -440,65 +453,66 @@ label{font-size:12px;font-weight:600;color:var(--text2);display:block;margin-bot
     <button class="ico-btn" onclick="goTo('s-home')">‹</button>
     <h1>Ajustes</h1>
   </div>
-  <div class="card" style="margin-bottom:12px">
-    <div class="row-sb" style="margin-bottom:6px"><span class="muted">Usuario</span><span style="font-weight:700;font-size:13px" id="cfg-user">—</span></div>
-    <div class="row-sb"><span class="muted">Almacenamiento</span><span style="font-size:12px">Firebase Realtime DB</span></div>
+
+  <!-- Info cuenta -->
+  <div class="card" style="margin-bottom:12px;padding:10px 14px">
+    <div class="row-sb"><span class="muted" style="font-size:12px">Usuario</span><span style="font-weight:700;font-size:12px" id="cfg-user">—</span></div>
+    <div class="row-sb" style="margin-top:4px"><span class="muted" style="font-size:12px">Base de datos</span><span style="font-size:11px;color:var(--text2)">Firebase Realtime DB</span></div>
   </div>
 
-  <!-- Categorías principales -->
+  <!-- Categorías -->
   <div style="display:flex;border:1px solid var(--border2);border-radius:var(--r);overflow:hidden;margin-bottom:14px">
-    <button id="cfg-cat-inst" class="ctab on" onclick="cfgCat('inst')"><i class="ti ti-clipboard-list"></i> Instrumentos de evaluación</button>
-    <button id="cfg-cat-gest" class="ctab"    onclick="cfgCat('gest')"><i class="ti ti-users"></i> Gestión de estudiantes</button>
+    <button id="cfg-cat-inst" class="ctab on" onclick="cfgCat('inst')"><i class="ti ti-clipboard-list"></i> Instrumentos</button>
+    <button id="cfg-cat-gest" class="ctab"    onclick="cfgCat('gest')"><i class="ti ti-users"></i> Estudiantes</button>
   </div>
 
-  <!-- ── CATEGORÍA: Instrumentos de evaluación ── -->
+  <!-- ══ INSTRUMENTOS DE EVALUACIÓN ══ -->
   <div id="cfg-cat-panel-inst">
-    <!-- Sub-tabs instrumentos -->
-    <div style="display:flex;gap:6px;margin-bottom:12px;overflow-x:auto;padding-bottom:2px">
+    <!-- Sub-tabs -->
+    <div style="display:flex;gap:5px;margin-bottom:10px;overflow-x:auto">
       <button id="cfg-inst-rub"    class="btn btn-sm inst-tab on"   onclick="cfgInst('rub')"><i class="ti ti-list-check"></i> Rúbricas</button>
-      <button id="cfg-inst-cotejo" class="btn btn-sm inst-tab"      onclick="cfgInst('cotejo')"><i class="ti ti-checkbox"></i> Listas de cotejo</button>
-      <button id="cfg-inst-escala" class="btn btn-sm inst-tab"      onclick="cfgInst('escala')"><i class="ti ti-star"></i> Escala de desempeños</button>
-      <button id="cfg-inst-otros"  class="btn btn-sm inst-tab"      onclick="cfgInst('otros')"><i class="ti ti-file-description"></i> Otros</button>
+      <button id="cfg-inst-cotejo" class="btn btn-sm inst-tab"      onclick="cfgInst('cotejo')"><i class="ti ti-checkbox"></i> Cotejo</button>
+      <button id="cfg-inst-escala" class="btn btn-sm inst-tab"      onclick="cfgInst('escala')"><i class="ti ti-star-half"></i> Escalas</button>
+      <button id="cfg-inst-otros"  class="btn btn-sm inst-tab"      onclick="cfgInst('otros')"><i class="ti ti-file-plus"></i> Otros</button>
     </div>
 
-    <!-- Panel Rúbricas -->
+    <!-- Rúbricas -->
     <div id="cfg-inst-panel-rub">
-      <div class="card"><div id="cfg-rub-list" style="display:flex;flex-direction:column;gap:7px"></div></div>
-      <button class="btn" onclick="abrirEditor()" style="margin-top:8px"><i class="ti ti-plus"></i> Nueva rúbrica</button>
+      <div class="card" style="margin-bottom:8px"><div id="cfg-rub-list" style="display:flex;flex-direction:column;gap:7px"></div></div>
+      <button class="btn" onclick="abrirEditor()"><i class="ti ti-plus"></i> Nueva rúbrica personalizada</button>
     </div>
 
-    <!-- Panel Listas de cotejo -->
+    <!-- Listas de cotejo -->
     <div id="cfg-inst-panel-cotejo" style="display:none">
-      <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap">
-        <button class="btn btn-sm" onclick="verCotejo('caida')" style="flex:1">2° — Caída Libre</button>
-        <button class="btn btn-sm" onclick="verCotejo('cg')"    style="flex:1">3° — CG y Equilibrio</button>
-        <button class="btn btn-sm" onclick="verCotejo('trabajo')" style="flex:1">4° — Trabajo Mecánico</button>
-        <button class="btn btn-sm" onclick="verCotejo('mas')"   style="flex:1">5° — MAS masa-resorte</button>
+      <div class="info-box" style="margin-bottom:8px;font-size:11px"><strong>[G]</strong> Evaluado en la Guía &nbsp;·&nbsp; <strong>[S]</strong> Evaluado en la Sesión</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px">
+        <button class="btn btn-sm" onclick="verCotejo('caida')">2° Caída Libre</button>
+        <button class="btn btn-sm" onclick="verCotejo('cg')">3° CG y Equilibrio</button>
+        <button class="btn btn-sm" onclick="verCotejo('trabajo')">4° Trabajo Mecánico</button>
+        <button class="btn btn-sm" onclick="verCotejo('mas')">5° MAS masa-resorte</button>
       </div>
       <div id="cotejo-visor"></div>
     </div>
 
-    <!-- Panel Escala de desempeños -->
+    <!-- Escalas de desempeño -->
     <div id="cfg-inst-panel-escala" style="display:none">
-      <div class="info-box" style="margin-bottom:10px;font-size:12px">
-        Las escalas de desempeño definen los niveles AD / A / B / C para cada competencia según grado y práctica. Son la base de la rúbrica utilizada en la calificación de mesas.
-      </div>
-      <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap">
-        <button class="btn btn-sm" onclick="verEscala('caida')"   style="flex:1">2° — Caída Libre</button>
-        <button class="btn btn-sm" onclick="verEscala('cg')"      style="flex:1">3° — CG y Equilibrio</button>
-        <button class="btn btn-sm" onclick="verEscala('trabajo')" style="flex:1">4° — Trabajo Mecánico</button>
-        <button class="btn btn-sm" onclick="verEscala('mas')"     style="flex:1">5° — MAS masa-resorte</button>
+      <div class="info-box" style="margin-bottom:8px;font-size:11px">Escala AD/A/B/C por competencia según grado y práctica.</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px">
+        <button class="btn btn-sm" onclick="verEscala('caida')">2° Caída Libre</button>
+        <button class="btn btn-sm" onclick="verEscala('cg')">3° CG y Equilibrio</button>
+        <button class="btn btn-sm" onclick="verEscala('trabajo')">4° Trabajo Mecánico</button>
+        <button class="btn btn-sm" onclick="verEscala('mas')">5° MAS masa-resorte</button>
       </div>
       <div id="escala-visor"></div>
     </div>
 
-    <!-- Panel Otros -->
+    <!-- Otros -->
     <div id="cfg-inst-panel-otros" style="display:none">
-      <div class="info-box">Próximamente: listas de verificación personalizadas, guías de observación y otros instrumentos.</div>
+      <div class="info-box">Próximamente: guías de observación y otros instrumentos personalizados.</div>
     </div>
   </div>
 
-  <!-- ── CATEGORÍA: Gestión de estudiantes ── -->
+  <!-- ══ GESTIÓN DE ESTUDIANTES ══ -->
   <div id="cfg-cat-panel-gest" style="display:none">
     <div style="display:flex;gap:8px;margin-bottom:8px;align-items:center">
       <select id="gestor-sec" onchange="renderGestorAlumnos(this.value)" style="flex:1;padding:8px;font-size:12px;border:1px solid var(--border2);border-radius:var(--r);background:var(--bg);color:var(--text)">
@@ -511,15 +525,14 @@ label{font-size:12px;font-weight:600;color:var(--text2);display:block;margin-bot
       <span id="gestor-count" class="muted" style="font-size:11px;white-space:nowrap"></span>
     </div>
     <div style="display:flex;gap:8px;margin-bottom:8px">
-      <input type="text" id="gestor-nuevo" placeholder="APELLIDOS Nombre nuevo" style="flex:1;padding:8px;font-size:12px;border:1px solid var(--border2);border-radius:var(--r);background:var(--bg);color:var(--text)">
-      <button class="btn btn-p" style="flex:0;padding:8px 14px;font-size:16px" onclick="var s=document.getElementById('gestor-sec').value;var n=document.getElementById('gestor-nuevo').value;agregarAlumno(s,n);document.getElementById('gestor-nuevo').value=''"><i class="ti ti-plus"></i></button>
+      <input type="text" id="gestor-nuevo" placeholder="APELLIDOS Nombre" style="flex:1;padding:8px;font-size:12px;border:1px solid var(--border2);border-radius:var(--r);background:var(--bg);color:var(--text)">
+      <button class="btn btn-p" style="flex:0;padding:8px 14px" onclick="var s=document.getElementById('gestor-sec').value;var n=document.getElementById('gestor-nuevo').value;agregarAlumno(s,n);document.getElementById('gestor-nuevo').value=''"><i class="ti ti-plus"></i></button>
     </div>
-    <div id="gestor-lista" style="max-height:300px;overflow-y:auto"></div>
+    <div id="gestor-lista" style="max-height:340px;overflow-y:auto"></div>
   </div>
 
   <button class="btn" style="color:var(--red-txt);margin-top:20px" onclick="doLogout()"><i class="ti ti-logout"></i> Cerrar sesión</button>
 </div>
-
 
 <!-- ── S-NOTAS-SEC ── -->
 <div id="s-notas-sec" class="screen">
@@ -936,9 +949,26 @@ let st = {
   sec:   "2° A",
   mesa:  1,
   practica: "caida",
+  metodo:   "rubrica",   // rubrica | cotejo | escala
   compMesa: "C20",
   compAl:   "C20",
 };
+// Devuelve el instrumento activo (RUBRICAS o LISTAS_COTEJO) según st.metodo
+function getInstrumento(prac){
+  prac = prac || st.practica;
+  if(st.metodo === 'cotejo' || st.metodo === 'escala'){
+    return LISTAS_COTEJO[prac] || RUBRICAS[prac];
+  }
+  return RUBRICAS[prac];
+}
+// Descriptores de una competencia según instrumento activo
+function getDes(prac, comp){
+  var inst = getInstrumento(prac);
+  if(!inst) return [];
+  // LISTAS_COTEJO tiene {num,tag,txt}; RUBRICAS tiene strings
+  var raw = inst[comp] || [];
+  return raw.map(function(d){ return typeof d === 'object' ? d.txt : d; });
+}
 let notas    = {};
 let mesaNivs = {};
 let asigTemp = {};
@@ -1034,7 +1064,7 @@ function savePracticas(){var obj={};practicas.forEach(function(p,i){obj['p'+i]=p
 // ══════════════════════════════════════════════════════
 // HELPERS
 // ══════════════════════════════════════════════════════
-function getAllDes(){ const r=RUBRICAS[st.practica]; return [...r.C20,...r.C21,...r.C22]; }
+function getAllDes(){ return [...getDes(st.practica,'C20'),...getDes(st.practica,'C21'),...getDes(st.practica,'C22')]; }
 function getAls(s)  { return ALUMNOS[s]||[]; }
 function getAlsMesa(sec,m){
   const a=loadAsig(sec);
@@ -1057,7 +1087,7 @@ function calcNota(sec,m,idx){
 }
 function calcComp(comp,sec,m,idx){
   if(!notas[sec]?.[m]?.[idx]) return null;
-  const des=RUBRICAS[st.practica][comp];
+  const des=getDes(st.practica,comp);
   const v=des.map(d=>notas[sec][m][idx][d]).filter(Boolean);
   if(!v.length) return null;
   const r=v.reduce((s,x)=>s+PTS[x],0)/(des.length*4);
@@ -1225,20 +1255,28 @@ function navComp(d){
   if(nx) selComp(nx);
 }
 function renderMesaDes(){
-  const sec=st.sec; const m=st.mesa; const r=RUBRICAS[st.practica];
+  const sec=st.sec; const m=st.mesa;
+  const inst=getInstrumento(); if(!inst) return;
   const el=document.getElementById('mesa-des'); el.innerHTML='';
   if(!mesaNivs[sec]) mesaNivs[sec]={};
   if(!mesaNivs[sec][m]) mesaNivs[sec][m]={};
-  const des=r[st.compMesa];
+  const rawDes = inst[st.compMesa] || [];
+  const des = getDes(st.practica, st.compMesa);
   const filled=des.filter(d=>mesaNivs[sec][m][d]).length;
-  document.getElementById('comp-info').textContent=`${COMP_DESC[st.compMesa]} · ${filled}/${des.length} asignados`;
+  // Mostrar badge de instrumento activo
+  const metLabel={rubrica:'Rúbrica',cotejo:'Lista de cotejo',escala:'Escala desempeño'}[st.metodo]||'Rúbrica';
   const idx=COMP_ORD.indexOf(st.compMesa);
+  document.getElementById('comp-info').textContent=`${COMP_DESC[st.compMesa]} · ${filled}/${des.length} marcados · ${metLabel}`;
   document.getElementById('btn-prev').style.opacity=idx===0?'0.3':'1';
   document.getElementById('btn-next').innerHTML=idx===2?'<i class="ti ti-check"></i> Listo':'Siguiente <i class="ti ti-chevron-right"></i>';
-  des.forEach(d=>{
-    const isD=d.includes('(D)'); const cur=mesaNivs[sec][m][d]||null;
+  des.forEach((d,i)=>{
+    const raw=rawDes[i];
+    const tag = typeof raw==='object' ? raw.tag : (d.includes('(D)')?'D':'G');
+    const txt = d.replace(' (D)','');
+    const cur=mesaNivs[sec][m][d]||null;
     const blk=document.createElement('div'); blk.className='des-blk';
-    blk.innerHTML=`<div class="des-lbl"><span class="ctag ${isD?'ctag-d':'ctag-g'}">${isD?'D':'G'}</span>${d.replace(' (D)','')}</div>
+    const tagCls = tag==='S'?'ctag-d':tag==='D'?'ctag-d':'ctag-g';
+    blk.innerHTML=`<div class="des-lbl"><span class="ctag ${tagCls}">${tag}</span>${txt}</div>
       <div class="mopts">${NVL.map(n=>`<button class="mb ${cur===n?n:''}" onclick="setMN('${d}','${n}',this)">${n}</button>`).join('')}</div>`;
     el.appendChild(blk);
   });
@@ -1251,19 +1289,18 @@ function setMN(des,nivel,btn){
   const cur=mesaNivs[sec][m][des];
   btn.parentElement.querySelectorAll('.mb').forEach((b,i)=>{ b.className='mb '+(cur===NVL[i]?NVL[i]:''); });
   // update filled count
-  const r=RUBRICAS[st.practica]; const des2=r[st.compMesa];
+  const des2=getDes(st.practica,st.compMesa);
   const filled=des2.filter(d=>mesaNivs[sec][m][d]).length;
-  document.getElementById('comp-info').textContent=`${COMP_DESC[st.compMesa]} · ${filled}/${des2.length} asignados`;
+  const metLabel2={rubrica:'Rúbrica',cotejo:'Lista de cotejo',escala:'Escala desempeño'}[st.metodo]||'Rúbrica';
+  document.getElementById('comp-info').textContent=`${COMP_DESC[st.compMesa]} · ${filled}/${des2.length} marcados · ${metLabel2}`;
   // update real-time nota display
   updateNotasRT();
 }
 function updateNotasRT(){
-  const sec=st.sec; const m=st.mesa; const r=RUBRICAS[st.practica];
-  if(!r) return;
-  // Para calcular nota en tiempo real de la mesa usamos mesaNivs
-  // Simular una nota: promedio de descriptores marcados por competencia
+  const sec=st.sec; const m=st.mesa; const inst=getInstrumento();
+  if(!inst) return;
   ['C20','C21','C22'].forEach(function(comp){
-    var des=r[comp]; var vals=des.map(function(d){return mesaNivs[sec]?.[m]?.[d]||null;}).filter(Boolean);
+    var des=getDes(st.practica,comp); var vals=des.map(function(d){return mesaNivs[sec]?.[m]?.[d]||null;}).filter(Boolean);
     var nota=null;
     if(vals.length>0){
       var pts={'AD':4,'A':3,'B':2,'C':1};
@@ -1292,8 +1329,8 @@ function updateNotasRT(){
   }
 }
 function _rtComp(comp){
-  const sec=st.sec; const m=st.mesa; const r=RUBRICAS[st.practica]; if(!r) return null;
-  var des=r[comp]; var vals=des.map(function(d){return mesaNivs[sec]?.[m]?.[d]||null;}).filter(Boolean);
+  const sec=st.sec; const m=st.mesa; if(!getInstrumento()) return null;
+  var des=getDes(st.practica,comp); var vals=des.map(function(d){return mesaNivs[sec]?.[m]?.[d]||null;}).filter(Boolean);
   if(!vals.length) return null;
   var pts={'AD':4,'A':3,'B':2,'C':1};
   var sum=vals.reduce(function(s,v){return s+(pts[v]||0);},0)/vals.length;
@@ -1331,11 +1368,11 @@ function renderAlumnos(){
 }
 
 function renderDesAl(sec,m,idx){
-  var r=RUBRICAS[getSecPractica(st.sec)];var comps=st.compAl==='ALL'?COMP_ORD:[st.compAl];
+  var comps=st.compAl==='ALL'?COMP_ORD:[st.compAl];
   var container=document.createElement('div');
   comps.forEach(function(comp){
     if(st.compAl==='ALL'){var lbl=document.createElement('div');lbl.className='sec-lbl';lbl.textContent=comp;container.appendChild(lbl);}
-    r[comp].forEach(function(d){
+    getDes(st.practica,comp).forEach(function(d){
       var isD=d.includes('(D)');var cur=(notas[sec]&&notas[sec][m]&&notas[sec][m][idx]&&notas[sec][m][idx][d])||null;
       var row=document.createElement('div');row.className='des-row';
       var lbl2=document.createElement('div');lbl2.className='des-lbl2';
@@ -1486,6 +1523,14 @@ function distLimpiar(){ getAls(st.sec).forEach((_,i)=>{ asigTemp[i]=0; }); chipS
 // ══════════════════════════════════════════════════════
 // PRÁCTICAS
 // ══════════════════════════════════════════════════════
+// ── Nueva práctica: mostrar/ocultar selector según método ─────────────────
+function npMetodoChange(val){
+  var rowRub = document.getElementById('np-row-rubrica');
+  var rowCot = document.getElementById('np-row-cotejo');
+  if(rowRub) rowRub.style.display = (val==='rubrica') ? 'block' : 'none';
+  if(rowCot) rowCot.style.display = (val!=='rubrica') ? 'block' : 'none';
+}
+
 function renderPracticas(){
   const el=document.getElementById('practicas-list'); el.innerHTML='';
   if(!practicas.length){
@@ -1516,7 +1561,9 @@ function guardarPractica(){
     grado:  document.getElementById('np-grado').value,
     fecha:  document.getElementById('np-fecha').value,
     metodo: document.getElementById('np-metodo').value,
-    rubrica:document.getElementById('np-rubrica').value,
+    rubrica:(document.getElementById('np-metodo').value==='rubrica'
+             ? document.getElementById('np-rubrica').value
+             : document.getElementById('np-cotejo').value),
     notas:  document.getElementById('np-notas').value.trim(),
   };
   if(id!==undefined && id!=='') practicas[parseInt(id)]=p;
@@ -1534,7 +1581,9 @@ function editarPractica(i){
   document.getElementById('np-grado').value=p.grado;
   document.getElementById('np-fecha').value=p.fecha||'';
   document.getElementById('np-metodo').value=p.metodo;
-  document.getElementById('np-rubrica').value=p.rubrica||'caida';
+  npMetodoChange(p.metodo);
+  if(p.metodo==='rubrica'){ document.getElementById('np-rubrica').value=p.rubrica||'caida'; }
+  else { var ce=document.getElementById('np-cotejo'); if(ce) ce.value=p.rubrica||'caida'; }
   document.getElementById('np-notas').value=p.notas||'';
   document.getElementById('np-titulo').textContent='Editar práctica';
   document.getElementById('np-titulo').dataset.editIdx=i;
@@ -1544,7 +1593,9 @@ function borrarPractica(i){
   if(confirm('¿Eliminar esta práctica?')){ practicas.splice(i,1); savePracticas(); renderPracticas(); }
 }
 function calificarPractica(i){
-  const p=practicas[i]; st.practica=p.rubrica||'caida';
+  const p=practicas[i];
+  st.practica = p.rubrica||'caida';
+  st.metodo   = p.metodo||'rubrica';
   loadAll(); goTo('s-mesas');
 }
 

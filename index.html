@@ -824,7 +824,8 @@ function dbSet(path,data){
   setSyncState('pend');
   getToken(function(tok){
     var url=DB_URL+'/'+path+'.json'+(tok?'?auth='+tok:'');
-    fetch(url,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)})
+    var body; try{ body=JSON.stringify(data); }catch(e){ console.warn('dbSet serialize error:',e); setSyncState('err'); return; }
+    fetch(url,{method:'PUT',headers:{'Content-Type':'application/json'},body:body})
       .then(function(r){
         if(!r.ok) throw new Error('HTTP '+r.status);
         setSyncState('ok');
@@ -1055,12 +1056,19 @@ function migrarDistribucionMesas(){
 }
 
 function showApp(){flushPending();migrateOldKeys();document.getElementById('login-wrap').style.display='none';document.getElementById('app').style.display='block';document.getElementById('bottom-nav').style.display='flex';var cu=document.getElementById('cfg-user');if(cu)cu.textContent=currentUser.email;document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active');});var home=document.getElementById('s-home');if(home)home.classList.add('active');loadAll(function(){renderHome();updateBnav('s-home');migrarDistribucionMesas();});}
-function showLogin(){document.getElementById('login-wrap').style.display='flex';document.getElementById('app').style.display='none';document.getElementById('bottom-nav').style.display='none';}
+function showLogin(){
+  var lw=document.getElementById('login-wrap');
+  var ap=document.getElementById('app');
+  var bn=document.getElementById('bottom-nav');
+  if(lw) lw.style.display='flex';
+  if(ap) ap.style.display='none';
+  if(bn) bn.style.display='none';
+}
 
 function doLogin(){
   var email=document.getElementById('lu').value.trim(),pass=document.getElementById('lp').value;
   var err=document.getElementById('lerr'),btn=document.getElementById('lbtn');
-  err.style.display='none';
+  if(err) err.style.display='none';
   if(!email||!pass){err.textContent='Ingresa tu correo y contraseña.';err.style.display='block';return;}
   btn.textContent='Ingresando...';btn.disabled=true;
   fbAuth.signInWithEmailAndPassword(email,pass)
@@ -1089,12 +1097,16 @@ function loadAll(cb){
     dbGet('cipb2026/secconfig',function(err,cfgData){
       if(!err&&cfgData) Object.keys(cfgData).forEach(function(k){ secConfig[k.replace('_','° ')]=cfgData[k]; });
       dbGet('cipb2026/practicas',function(err3,data3){
-        if(!err3&&data3) practicas=Object.values(data3||{});
+        if(!err3&&data3){
+          // Filter out null/invalid entries from Firebase
+          practicas=Object.values(data3||{}).filter(function(p){ return p && typeof p==='object'; });
+        }
         // Load notas for ALL practices so export/resumen always has complete data
         var pracs=['caida','cg','trabajo','mas'];
         // Also include any custom practice keys
         practicas.forEach(function(p){ if(p.rubrica && !pracs.includes(p.rubrica)) pracs.push(p.rubrica); });
         var remaining=pracs.length;
+        if(remaining===0){ if(cb) cb(); return; }
         pracs.forEach(function(prac){
           dbGet('cipb2026/notas/'+prac,function(err2,data){
             if(!err2&&data) Object.keys(data).forEach(function(k){ notas[k.replace('_','° ')]=data[k]; });
@@ -1109,9 +1121,6 @@ function loadAll(cb){
 
 function saveNotas(sec){
   var prac=getSecPractica(sec);
-  // Update secConfig so prac is always current
-  if(st.practica) setSecCfg(sec,'practica',st.practica);
-  if(st.metodo)   setSecCfg(sec,'metodo',st.metodo);
   dbSet('cipb2026/notas/'+prac+'/'+sec.replace('° ','_'), notas[sec]||{});
 }
 function loadAsig(sec){
@@ -1172,8 +1181,15 @@ function calcComp(comp,sec,m,idx){
 }
 function contarCal(sec,m){
   if(!notas[sec]?.[m]) return 0;
-  const allD=getAllDes();
-  return getAlsMesa(sec,m).filter(({i})=>notas[sec][m][i] && allD.every(d=>notas[sec][m][i][d])).length;
+  // Cuenta como calificado si tiene al menos 1 descriptor marcado por competencia
+  return getAlsMesa(sec,m).filter(function(al){
+    var entry=notas[sec][m][al.i];
+    if(!entry) return false;
+    var c20=getDes(sec!==st.sec?getSecPractica(sec):st.practica,'C20').some(function(d){return entry[d];});
+    var c21=getDes(sec!==st.sec?getSecPractica(sec):st.practica,'C21').some(function(d){return entry[d];});
+    var c22=getDes(sec!==st.sec?getSecPractica(sec):st.practica,'C22').some(function(d){return entry[d];});
+    return c20&&c21&&c22;
+  }).length;
 }
 function nc(n){
   if(n==='AD') return 'tag-green';
@@ -1258,7 +1274,7 @@ function renderHome(){
     secs.filter(s=>s.startsWith(n)).forEach(function(s){
       gradoTot+=getAls(s).length;
       var _asig=loadAsig(s);
-      for(var _m=1;_m<=6;_m++) getAlsMesa(s,_m).forEach(function(al){if(notas[s]&&notas[s][_m]&&notas[s][_m][al.i])gradoCal++;});
+      for(var _m=1;_m<=6;_m++) getAlsMesa(s,_m).forEach(function(al){try{if(notas[s]&&notas[s][_m]&&notas[s][_m][al.i])gradoCal++;}catch(e){}});
     });
     var gradoPct=gradoTot>0?Math.round(gradoCal/gradoTot*100):0;
     d.innerHTML=`<div class="grado-num">${n}</div>
@@ -1654,12 +1670,14 @@ function distLimpiar(){ getAls(st.sec).forEach((_,i)=>{ asigTemp[i]=0; }); chipS
 
 // ── Etiqueta legible del instrumento ─────────────────────────────────────────
 function getInstLabel(key){
-  if(!key) return '—';
-  var base={caida:'Caída Libre (2°)',cg:'CG y Equilibrio (3°)',trabajo:'Trabajo Mecánico (4°)',mas:'MAS masa-resorte (5°)'};
-  if(base[key]) return base[key];
-  if(RUBRICAS[key]) return (RUBRICAS[key].nombre||key)+' ('+( RUBRICAS[key].grado||'?')+'°)';
-  if(LISTAS_COTEJO[key]) return (LISTAS_COTEJO[key].titulo||key)+' ('+(LISTAS_COTEJO[key].grado||'?')+')';
-  return key;
+  try{
+    if(!key) return '—';
+    var base={caida:'Caída Libre (2°)',cg:'CG y Equilibrio (3°)',trabajo:'Trabajo Mecánico (4°)',mas:'MAS masa-resorte (5°)'};
+    if(base[key]) return base[key];
+    if(RUBRICAS[key]) return (RUBRICAS[key].nombre||key)+' ('+( RUBRICAS[key].grado||'?')+'°)';
+    if(LISTAS_COTEJO[key]) return (LISTAS_COTEJO[key].titulo||key)+' ('+(LISTAS_COTEJO[key].grado||'?')+')'
+    return key;
+  }catch(e){ return key||'—'; }
 }
 
 // ── Poblar np-instrumento dinámicamente ──────────────────────────────────────
@@ -2936,6 +2954,7 @@ function guardarCfgSec(){
     if(!confirm('Esta sección ya tiene notas guardadas con "'+(oldCfg.practica||'?')+'". ¿Cambiar instrumento puede afectar esos datos. ¿Continuar?')) return;
   }
   setSecCfg(sec,'practica',practica);
+  setSecCfg(sec,'rubrica',practica);
   setSecCfg(sec,'metodo',metodo);
   setSecCfg(sec,'fecha',fecha);
   st.practica=practica;
@@ -3360,9 +3379,13 @@ function exportarAsistencia(){
 
 // ── Global error handler ────────────────────────────────────────────────────
 window.addEventListener('error', function(e){
-  console.error('App error:', e.message, e.filename, e.lineno);
-  // Show non-intrusive toast instead of crashing
-  showToast('Error: '+e.message.substring(0,60), 'error');
+  var msg = e.message||'';
+  // Ignore expected/benign errors
+  if(msg.includes('ResizeObserver') || msg.includes('Non-Error') ||
+     msg.includes('net::ERR') || msg.includes('NetworkError') ||
+     msg.includes('Failed to fetch')) return;
+  console.error('App error:', msg, e.filename, e.lineno);
+  showToast('Error: '+msg.substring(0,60), 'error');
 });
 
 // ── Offline/online indicator ─────────────────────────────────────────────────
@@ -3371,9 +3394,10 @@ window.addEventListener('online',  function(){ showToast('Conexión restaurada �
 
 // ── Toast system ──────────────────────────────────────────────────────────────
 function showToast(msg, type){
+  if(!msg) return;
   type=type||'ok';
   var t=document.getElementById('app-toast');
-  if(!t) return;
+  if(!t){ console.log('[Toast]',msg); return; }
   t.textContent=msg;
   t.className='app-toast show '+(type==='error'?'toast-err':type==='warn'?'toast-warn':'toast-ok');
   clearTimeout(window._toastTimer);

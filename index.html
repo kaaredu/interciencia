@@ -11,6 +11,7 @@
   --bg:#fff;--bg2:#f7f7f7;--bg3:#efefef;
   --text:#111;--text2:#666;--text3:#aaa;
   --border:#e2e2e2;--border2:#bbb;
+  --accent: #1a7f64;
   --blue:#1660a8;--green:#0e6b52;--amber:#b8720e;--red:#9e2a2b;
   --blue-bg:#e8f1fb;--green-bg:#e0f4ee;--amber-bg:#faecd8;--red-bg:#fbeaea;
   --blue-txt:#0a3e78;--green-txt:#073d2d;--amber-txt:#5c380a;--red-txt:#6b1515;
@@ -185,6 +186,16 @@ label{font-size:12px;font-weight:600;color:var(--text2);display:block;margin-bot
 .nota-rt-lbl{font-size:9px;font-weight:700;color:var(--text2);margin-bottom:2px}
 .nota-rt-val{font-size:15px;font-weight:800}
 /* Asistencia por mesa */
+
+/* Toast */
+.app-toast{position:fixed;bottom:70px;left:50%;transform:translateX(-50%) translateY(20px);
+  padding:8px 16px;border-radius:20px;font-size:12px;font-weight:600;
+  opacity:0;transition:all .25s;pointer-events:none;z-index:9999;white-space:nowrap;max-width:90vw;text-align:center}
+.app-toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast-ok{background:#0F6E56;color:#fff}
+.toast-warn{background:#BA7517;color:#fff}
+.toast-err{background:#A32D2D;color:#fff}
+
 .asist-mesa-badge{display:inline-block;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:700;margin-left:4px}
 
 /* Asistencia */
@@ -288,7 +299,10 @@ label{font-size:12px;font-weight:600;color:var(--text2);display:block;margin-bot
   <div class="topbar">
     <button class="ico-btn" onclick="goTo('s-mesas')">‹</button>
     <h1 id="cal-titulo">Mesa 1</h1>
-    <span class="tag tag-gray" id="cal-prog">0/0</span>
+    <div style="display:flex;align-items:center;gap:4px">
+      <span style="font-size:10px;padding:2px 6px;border-radius:4px;background:var(--bg2);border:1px solid var(--border2);color:var(--text2)" id="cal-inst-badge"></span>
+      <span class="tag tag-gray" id="cal-prog">0/0</span>
+    </div>
   </div>
   <div style="display:flex;border:1px solid var(--border2);border-radius:var(--r);overflow:hidden;margin-bottom:12px">
     <button id="tabA" class="ctab on" onclick="swTab('A')">Por mesa</button>
@@ -359,7 +373,10 @@ label{font-size:12px;font-weight:600;color:var(--text2);display:block;margin-bot
       <tbody id="res-tbody"></tbody>
     </table>
   </div>
-  <button class="btn" onclick="goTo('s-mesas')"><i class="ti ti-arrow-left"></i> Otra mesa</button>
+  <div class="btn-row" style="margin-top:10px">
+    <button class="btn" style="flex:1" onclick="goTo('s-mesas')"><i class="ti ti-arrow-left"></i> Otra mesa</button>
+    <button class="btn" style="flex:1" onclick="exportarMesaActual()"><i class="ti ti-table-export"></i> Exportar</button>
+  </div>
 </div>
 
 <!-- ── S-ASIGNAR ── -->
@@ -737,6 +754,10 @@ label{font-size:12px;font-weight:600;color:var(--text2);display:block;margin-bot
   </div>
 </div>
 
+
+<!-- Toast notification -->
+<div id="app-toast" class="app-toast"></div>
+
 </div><!-- /app -->
 
 <script>
@@ -999,25 +1020,33 @@ function lsA(s)  { return `lab26_asig_${s.replace('° ','_')}`; }
 function lsP()   { return `lab26_practicas`; }
 
 function loadAll(cb){
-  // Load per-section config first, then load notes
   loadAlumnosCustom(function(){
-  dbGet('cipb2026/secconfig',function(err,cfgData){
-    if(!err&&cfgData) Object.keys(cfgData).forEach(function(k){ secConfig[k.replace('_','° ')]=cfgData[k]; });
-    // Load notes for current section's practice
-    var prac=getSecPractica(st.sec);
-    dbGet('cipb2026/notas/'+prac,function(err2,data){
-      if(!err2&&data) Object.keys(data).forEach(function(k){ notas[k.replace('_','° ')]=data[k]; });
+    dbGet('cipb2026/secconfig',function(err,cfgData){
+      if(!err&&cfgData) Object.keys(cfgData).forEach(function(k){ secConfig[k.replace('_','° ')]=cfgData[k]; });
       dbGet('cipb2026/practicas',function(err3,data3){
         if(!err3&&data3) practicas=Object.values(data3||{});
-        if(cb) cb();
+        // Load notas for ALL practices so export/resumen always has complete data
+        var pracs=['caida','cg','trabajo','mas'];
+        // Also include any custom practice keys
+        practicas.forEach(function(p){ if(p.rubrica && !pracs.includes(p.rubrica)) pracs.push(p.rubrica); });
+        var remaining=pracs.length;
+        pracs.forEach(function(prac){
+          dbGet('cipb2026/notas/'+prac,function(err2,data){
+            if(!err2&&data) Object.keys(data).forEach(function(k){ notas[k.replace('_','° ')]=data[k]; });
+            remaining--;
+            if(remaining<=0 && cb) cb();
+          });
+        });
       });
     });
-  }); // end secconfig
-  }); // end loadAlumnosCustom
+  });
 }
 
 function saveNotas(sec){
   var prac=getSecPractica(sec);
+  // Update secConfig so prac is always current
+  if(st.practica) setSecCfg(sec,'practica',st.practica);
+  if(st.metodo)   setSecCfg(sec,'metodo',st.metodo);
   dbSet('cipb2026/notas/'+prac+'/'+sec.replace('° ','_'), notas[sec]||{});
 }
 function loadAsig(sec){
@@ -1097,7 +1126,15 @@ function goTo(id){
   var scr=document.getElementById(id);if(scr)scr.classList.add('active');
   if(id==='s-home') renderHome();
   if(id==='s-secciones') renderSecciones();
-  if(id==='s-mesas'){initMesasSelectors();asigTemp=Object.assign({},loadAsig(st.sec));renderMesas();}
+  if(id==='s-mesas'){
+    // Sync instrument from secConfig if not explicitly set via calificar/guardarCfgSec
+    var _cfg=getSecCfg(st.sec);
+    if(_cfg.practica && !st.practica) st.practica=_cfg.practica;
+    if(_cfg.metodo   && !st.metodo)   st.metodo=_cfg.metodo;
+    if(_cfg.practica) st.practica=_cfg.practica;
+    if(_cfg.metodo)   st.metodo=_cfg.metodo;
+    initMesasSelectors();asigTemp=Object.assign({},loadAsig(st.sec));renderMesas();
+  }
   if(id==='s-calificar') renderCalificar();
   if(id==='s-resumen') renderResumen();
   if(id==='s-cfg-seccion') renderCfgSeccion();
@@ -1153,8 +1190,16 @@ function renderHome(){
     let cal=0,total2=0; secs.forEach(s=>{ total2+=getAls(s).length; for(let m=1;m<=6;m++) cal+=contarCal(s,m); });
     const d=document.createElement('div'); d.className='grado-card';
     d.style.borderTop=`3px solid ${['var(--blue)','var(--green)','var(--amber)','var(--red)','var(--text3)'][i]}`;
+    var gradoCal=0,gradoTot=0;
+    secs.filter(s=>s.startsWith(n)).forEach(function(s){
+      gradoTot+=getAls(s).length;
+      var _asig=loadAsig(s);
+      for(var _m=1;_m<=6;_m++) getAlsMesa(s,_m).forEach(function(al){if(notas[s]&&notas[s][_m]&&notas[s][_m][al.i])gradoCal++;});
+    });
+    var gradoPct=gradoTot>0?Math.round(gradoCal/gradoTot*100):0;
     d.innerHTML=`<div class="grado-num">${n}</div>
       <div class="grado-lbl">Secundaria</div>
+      <div style="font-size:10px;margin-top:4px;color:var(--text2)">${gradoCal>0?gradoPct+'% evaluado':''}</div>
       <div class="muted" style="font-size:11px;margin-top:6px">${total} estudiantes</div>
       <div class="pbar"><div class="pfill" style="width:${total2>0?Math.round(cal/total2*100):0}%"></div></div>`;
     d.dataset.grado=g;d.onclick=function(){st.grado=this.dataset.grado;goTo('s-secciones');};
@@ -1240,6 +1285,12 @@ function renderCalificar(){
   selComp('C20'); selCompAl('C20');
   swTab('A');
   updateNotasRT();
+  // Update instrument badge
+  var badge=document.getElementById('cal-inst-badge');
+  if(badge){
+    var mL={rubrica:'Rúb',cotejo:'Cotejo',escala:'Escala'}[st.metodo]||'Rúb';
+    badge.textContent=mL+' · '+getInstLabel(st.practica);
+  }
 }
 function swTab(t){
   document.getElementById('tabA').classList.toggle('on',t==='A');
@@ -1357,7 +1408,7 @@ function aplicarMesa(){
       if(mv) notas[sec][m][i][d]=mv;
     });
   });
-  saveNotas(sec); goTo('s-resumen');
+  saveNotas(sec); showToast('Mesa '+ st.mesa +' guardada ✓'); goTo('s-resumen');
 }
 
 // ── Ajustar alumno ──────────────────────────────────────────────────────────
@@ -1518,7 +1569,7 @@ function dropEnMesa(m){
 function guardarAsig(){
   saveAsig(st.sec,asigTemp);
   const btn=document.querySelector('#s-asignar .btn-p');
-  if(btn){ btn.innerHTML='<i class="ti ti-check"></i> ¡Guardado!'; setTimeout(()=>{ btn.innerHTML='<i class="ti ti-device-floppy"></i> Guardar asignación'; goTo('s-mesas'); },900); }
+  showToast('Asignación guardada ✓'); if(btn){ btn.innerHTML='<i class="ti ti-check"></i> ¡Guardado!'; setTimeout(()=>{ btn.innerHTML='<i class="ti ti-device-floppy"></i> Guardar asignación'; goTo('s-mesas'); },900); }
 }
 function distOrden(){
   const als=getAls(st.sec); const pm=Math.ceil(als.length/6);
@@ -1660,6 +1711,7 @@ function guardarPractica(){
   if(id!==undefined && id!=='') practicas[parseInt(id)]=p;
   else practicas.push(p);
   savePracticas();
+  showToast('Práctica guardada ✓');
   // clear form
   ['np-nombre','np-fecha','np-notas'].forEach(x=>document.getElementById(x).value='');
   document.getElementById('np-titulo').dataset.editIdx='';
@@ -1684,8 +1736,12 @@ function calificarPractica(i){
   const p=practicas[i];
   st.practica = p.rubrica||'caida';
   st.metodo   = p.metodo||'rubrica';
-  // Sincronizar grado desde la práctica si está definido
-  if(p.grado) st.grado = p.grado;
+  if(p.grado) st.grado=p.grado;
+  // Sync secConfig so section-level tools (exportar, notas) know what's active
+  if(st.sec){
+    setSecCfg(st.sec,'practica',st.practica);
+    setSecCfg(st.sec,'metodo',st.metodo);
+  }
   loadAll(); goTo('s-mesas');
 }
 
@@ -1693,8 +1749,10 @@ function calificarPractica(i){
 // EXPORTAR
 // ══════════════════════════════════════════════════════
 function buildRows(sec,practica){
-  const savedP=st.practica; st.practica=practica;
-  // No llamar loadAll() aquí — notas ya están en memoria desde la última carga
+  const savedP=st.practica; const savedM=st.metodo; st.practica=practica;
+  // Inferir metodo desde secConfig si está disponible
+  var cfg=secConfig[sec]; if(cfg&&cfg.metodo) st.metodo=cfg.metodo;
+  // Notas ya en memoria desde la última carga
   const rows=[['N°','Apellidos y Nombres','Mesa','C20 (AD/A/B/C)','C21 (AD/A/B/C)','C22 (AD/A/B/C)','Nivel final']];
   const asig=loadAsig(sec);
   getAls(sec).forEach((nombre,i)=>{
@@ -1703,7 +1761,7 @@ function buildRows(sec,practica){
     const c20=calcComp('C20',sec,m,i); const c21=calcComp('C21',sec,m,i); const c22=calcComp('C22',sec,m,i);
     rows.push([i+1,nombre,`Mesa ${m}`,c20||'—',c21||'—',c22||'—',nota||'—']);
   });
-  st.practica=savedP; loadAll();
+  st.practica=savedP; st.metodo=savedM; loadAll();
   return rows;
 }
 
@@ -1905,10 +1963,7 @@ function cfgInst(tab){
   if(tab==='escala') renderEscalaList();
 }
 // Backward compat: old cfgTab('rub'/'alm') now maps to new system
-function cfgTab(tab){
-  if(tab==='rub') cfgCat('inst');
-  else if(tab==='alm') cfgCat('gest');
-}
+
 
 // ── Listas de cotejo: listar como tarjetas ──────────────────────────────────
 function renderCotejoList(){
@@ -2047,17 +2102,7 @@ function buildEscalaHTML(key){
 }
 
 // ── verCotejo / verEscala (legacy, keep for backward compat) ─────────────────
-function verCotejo(key){ toggleCotejoCard(key); }
-function verEscala(key){ toggleEscalaCard(key); }
 
-function cfgTab(tab){
-  if(tab==='rub') cfgCat('inst');
-  else if(tab==='alm') cfgCat('gest');
-}
-
-function renderCotejoGrid(){
-  // Already rendered via buttons — visor cleared on select
-}
 function verCotejo(prac){
   var lc=LISTAS_COTEJO[prac]; if(!lc) return;
   var el=document.getElementById('cotejo-visor'); if(!el) return;
@@ -2508,37 +2553,30 @@ function guardarCfgSec(){
   var metodo=parts[0]||'rubrica';
   var practica=parts[1]||'caida';
   var fecha=document.getElementById('cfgsec-fecha')?.value||'';
+  // Warn if changing instrument for a section that already has notes
+  var oldCfg=getSecCfg(sec);
+  var hasNotas=notas[sec]&&Object.keys(notas[sec]).length>0;
+  if(hasNotas && oldCfg.practica && oldCfg.practica!==practica){
+    if(!confirm('Esta sección ya tiene notas guardadas con "'+(oldCfg.practica||'?')+'". ¿Cambiar instrumento puede afectar esos datos. ¿Continuar?')) return;
+  }
   setSecCfg(sec,'practica',practica);
   setSecCfg(sec,'metodo',metodo);
   setSecCfg(sec,'fecha',fecha);
-  // Actualizar st y navegar directo a mesas para calificar
   st.practica=practica;
   st.metodo=metodo;
-  if(st.grado) {};  // grado ya está en st.sec
+  showToast('Configuración guardada ✓');
   goTo('s-mesas');
 }
 
 function initMesasSelectors(){var g=document.getElementById('mesas-grado');var s=document.getElementById('mesas-sec');if(g)g.value=st.grado;if(s){mesasPopularSecs(st.grado);s.value=st.sec;}}
 function mesasPopularSecs(grado){var s=document.getElementById('mesas-sec');if(!s)return;s.innerHTML='';Object.keys(ALUMNOS).filter(function(k){return k.startsWith(grado+'°');}).forEach(function(k){var o=document.createElement('option');o.value=k;o.textContent=k;if(k===st.sec)o.selected=true;s.appendChild(o);});}
 function mesasCambiarGrado(g){st.grado=g;mesasPopularSecs(g);var s=Object.keys(ALUMNOS).filter(function(k){return k.startsWith(g+'°');});if(s.length){st.sec=s[0];var el=document.getElementById('mesas-sec');if(el)el.value=st.sec;}asigTemp=Object.assign({},loadAsig(st.sec));renderMesas();}
-function mesasCambiarSec(s){st.sec=s;st.grado=s.charAt(0);asigTemp=Object.assign({},loadAsig(s));renderMesas();}
+function mesasCambiarSec(s){st.sec=s;st.grado=s.charAt(0);asigTemp=Object.assign({},loadAsig(s));if(!mesaNivs[s])mesaNivs[s]={};renderMesas();}
 function initAsigSelectors(){var g=document.getElementById('asig-grado');var s=document.getElementById('asig-sec');if(g)g.value=st.grado;if(s){asigPopularSecs(st.grado);s.value=st.sec;}}
 function asigPopularSecs(grado){var s=document.getElementById('asig-sec');if(!s)return;s.innerHTML='';Object.keys(ALUMNOS).filter(function(k){return k.startsWith(grado+'°');}).forEach(function(k){var o=document.createElement('option');o.value=k;o.textContent=k;if(k===st.sec)o.selected=true;s.appendChild(o);});}
 function asigCambiarGrado(g){st.grado=g;asigPopularSecs(g);var s=Object.keys(ALUMNOS).filter(function(k){return k.startsWith(g+'°');});if(s.length){st.sec=s[0];var el=document.getElementById('asig-sec');if(el)el.value=st.sec;}renderAsignar();}
 function asigCambiarSec(s){st.sec=s;st.grado=s.charAt(0);renderAsignar();}
-function cambiarNsSec(sec){
-  st.sec=sec;
-  var nsPrac=document.getElementById('ns-prac');
-  if(nsPrac){
-    var ap=getSecPractica(sec);
-    var nm={caida:'Caída Libre',cg:'CG y Equilibrio',trabajo:'Trabajo Mecánico',mas:'MAS masa-resorte'};
-    Array.from(nsPrac.options).forEach(function(opt){opt.textContent=(opt.value===ap?'★ ':'')+( nm[opt.value]||opt.value);});
-    nsPrac.value=ap;
-  }
-  var prac=(nsPrac&&nsPrac.value)||getSecPractica(sec);
-  nsLoadSec(sec,prac);
-  setTimeout(function(){renderNotasSec();},300);
-}
+
 
 // ── Gestión de estudiantes ──────────────────────────────────────────────────
 var alumnosCustom = {}; // overrides from Firebase
@@ -2595,6 +2633,27 @@ function renderGestorAlumnos(sec){
   });
   var count=document.getElementById('gestor-count');
   if(count) count.textContent=als.length+' estudiantes';
+}
+
+// ── Exportar mesa actual (desde resumen) ─────────────────────────────────────
+function exportarMesaActual(){
+  var sec=st.sec; var m=st.mesa;
+  var rows=[['N°','Estudiante','Mesa','C20','C21','C22','Nota']];
+  getAlsMesa(sec,m).forEach(function(al,j){
+    var nota=calcNota(sec,m,al.i);
+    rows.push([j+1, al.n, 'Mesa '+m,
+      calcComp('C20',sec,m,al.i)||'—',
+      calcComp('C21',sec,m,al.i)||'—',
+      calcComp('C22',sec,m,al.i)||'—',
+      nota||'—'
+    ]);
+  });
+  var wb=XLSX.utils.book_new();
+  var ws=XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols']=[{wch:4},{wch:30},{wch:8},{wch:6},{wch:6},{wch:6},{wch:6}];
+  XLSX.utils.book_append_sheet(wb,ws,'Mesa '+m);
+  XLSX.writeFile(wb,'Mesa'+m+'_'+sec.replace(/[°\s]/g,'_')+'_'+st.practica+'.xlsx');
+  showToast('Exportando Mesa '+m+' ✓');
 }
 
 // ── Exportar todo ──────────────────────────────────────────────────────────
@@ -2920,6 +2979,29 @@ function exportarAsistencia(){
     XLSX.utils.book_append_sheet(wb,ws,sec.replace('°','').replace(' ','_').substring(0,31));
   });
   XLSX.writeFile(wb,'Asistencia_CIPB_'+new Date().toISOString().slice(0,10)+'.xlsx');
+}
+
+
+// ── Global error handler ────────────────────────────────────────────────────
+window.addEventListener('error', function(e){
+  console.error('App error:', e.message, e.filename, e.lineno);
+  // Show non-intrusive toast instead of crashing
+  showToast('Error: '+e.message.substring(0,60), 'error');
+});
+
+// ── Offline/online indicator ─────────────────────────────────────────────────
+window.addEventListener('offline', function(){ showToast('Sin conexión — los cambios se guardarán al reconectar', 'warn'); });
+window.addEventListener('online',  function(){ showToast('Conexión restaurada ✓', 'ok'); flushPending(); });
+
+// ── Toast system ──────────────────────────────────────────────────────────────
+function showToast(msg, type){
+  type=type||'ok';
+  var t=document.getElementById('app-toast');
+  if(!t) return;
+  t.textContent=msg;
+  t.className='app-toast show '+(type==='error'?'toast-err':type==='warn'?'toast-warn':'toast-ok');
+  clearTimeout(window._toastTimer);
+  window._toastTimer=setTimeout(function(){ t.className='app-toast'; }, 3000);
 }
 
 document.getElementById('np-fecha').valueAsDate=new Date();

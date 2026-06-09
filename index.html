@@ -619,9 +619,22 @@ label{font-size:12px;font-weight:600;color:var(--text2);display:block;margin-bot
     <button class="btn btn-sm" style="width:auto" onclick="erAdd(false)" title="Guía"><i class="ti ti-plus"></i> G</button>
     <button class="btn btn-sm" style="width:auto;background:var(--amber-bg);color:var(--amber-txt)" onclick="erAdd(true)" title="Sesión (D)"><i class="ti ti-plus"></i> D</button>
   </div>
-  <div class="sec-lbl" style="margin-top:14px">Edición manual (JSON)</div>
-  <div class="info-box" style="font-size:11px">Copia, edita en un editor de texto y pega aquí para importar cambios.</div>
-  <textarea id="er-json" style="font-family:monospace;font-size:11px;min-height:160px" placeholder="Pega aquí el JSON de la rúbrica..."></textarea>
+  <!-- Importar desde Excel -->
+  <div class="sec-lbl" style="margin-top:14px">Importar / Exportar</div>
+  <div style="display:flex;gap:8px;margin-bottom:8px">
+    <button class="btn" style="flex:1;background:var(--green-bg);color:var(--green-txt);border-color:var(--green)" onclick="document.getElementById('er-xlsx-input').click()">
+      <i class="ti ti-file-spreadsheet"></i> Importar desde Excel (.xlsx)
+    </button>
+    <input type="file" id="er-xlsx-input" accept=".xlsx" style="display:none" onchange="erImportXlsx(this)">
+    <button class="btn" style="flex:1" onclick="erExportXlsx()">
+      <i class="ti ti-table-export"></i> Exportar a Excel
+    </button>
+  </div>
+  <div id="er-xlsx-status" style="display:none;font-size:11px;padding:6px 10px;border-radius:var(--r);margin-bottom:8px"></div>
+  <!-- Edición manual JSON -->
+  <div class="sec-lbl" style="margin-top:6px">Edición avanzada (JSON)</div>
+  <div class="info-box" style="font-size:11px">Edita en un editor de texto y pega aquí para importar cambios.</div>
+  <textarea id="er-json" style="font-family:monospace;font-size:11px;min-height:100px" placeholder="Pega aquí el JSON de la rúbrica..."></textarea>
   <div style="display:flex;gap:8px">
     <button class="btn" style="flex:1" onclick="erImport()"><i class="ti ti-upload"></i> Importar JSON</button>
     <button class="btn" style="flex:1" onclick="erExportJson()"><i class="ti ti-copy"></i> Copiar JSON</button>
@@ -989,6 +1002,28 @@ function abrirDescarga(){
 }
 
 function checkSession(){}
+// ── Migración: sincroniza ALUMNOS y MESAS_DIST a Firebase ──────────────────
+function migrarDistribucionMesas(){
+  if(localStorage.getItem('lab26_mesas_dist_v1')) return;
+  console.log('Migrando distribución de mesas a Firebase...');
+  var secs = Object.keys(MESAS_DIST);
+  var done = 0;
+  secs.forEach(function(sec){
+    var key = sec.replace('° ','_');
+    dbSetDirect('cipb2026/alumnos/'+key, ALUMNOS[sec], function(){});
+    var asig = {};
+    var dist = MESAS_DIST[sec];
+    Object.keys(dist).forEach(function(k){ asig[k] = dist[k]; });
+    dbSetDirect('cipb2026/asig/'+key, asig, function(){
+      done++;
+      if(done >= secs.length){
+        localStorage.setItem('lab26_mesas_dist_v1','1');
+        console.log('Migración de mesas completa (' + secs.length + ' secciones).');
+      }
+    });
+  });
+}
+
 function showApp(){flushPending();migrateOldKeys();document.getElementById('login-wrap').style.display='none';document.getElementById('app').style.display='block';document.getElementById('bottom-nav').style.display='flex';var cu=document.getElementById('cfg-user');if(cu)cu.textContent=currentUser.email;document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active');});var home=document.getElementById('s-home');if(home)home.classList.add('active');loadAll(function(){renderHome();updateBnav('s-home');migrarDistribucionMesas();});}
 function showLogin(){document.getElementById('login-wrap').style.display='flex';document.getElementById('app').style.display='none';document.getElementById('bottom-nav').style.display='none';}
 
@@ -1140,7 +1175,7 @@ function goTo(id){
   if(id==='s-cfg-seccion') renderCfgSeccion();
   if(id==='s-editor-rubrica'){erComp='C20';erRender();}
   if(id==='s-config'){
-    renderCustomRubricas();
+    renderCfgRubricas();
     cfgCat('inst');
     var gs=document.getElementById('gestor-sec'); if(gs) renderGestorAlumnos(gs.value);
   }
@@ -1864,6 +1899,113 @@ function erExportJson(){
   document.getElementById('er-json').value=txt;
   navigator.clipboard?.writeText(txt).then(()=>{}).catch(()=>{});
 }
+// ── Importar rúbrica desde Excel (.xlsx) ─────────────────────────────────────
+function erImportXlsx(input){
+  var file = input.files[0]; if(!file) return;
+  var statusEl = document.getElementById('er-xlsx-status');
+  statusEl.style.display='block';
+  statusEl.style.background='var(--amber-bg)';
+  statusEl.style.color='var(--amber-txt)';
+  statusEl.textContent='Leyendo archivo...';
+
+  var reader = new FileReader();
+  reader.onload = function(e){
+    try{
+      var data = new Uint8Array(e.target.result);
+      var wb   = XLSX.read(data, {type:'array'});
+      // Use first sheet
+      var ws   = wb.Sheets[wb.SheetNames[0]];
+      var rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:''});
+
+      // Find metadata rows (B4=nombre, B5=grado, B6=clave)
+      var nombre='', grado='2°', key='';
+      rows.forEach(function(row){
+        var a = String(row[0]||'').trim().toLowerCase();
+        var b = String(row[1]||'').trim();
+        if(a.includes('nombre') && b && !b.toLowerCase().includes('ej:')) nombre=b;
+        if(a.includes('grado')  && b && b.match(/[1-5]°/)) grado=b;
+        if(a.includes('clave')  && b && !b.toLowerCase().includes('ej:')) key=b.replace(/[^a-zA-Z0-9_]/g,'').toLowerCase();
+      });
+
+      // Find descriptor rows: rows where col A is C20/C21/C22
+      var C20=[], C21=[], C22=[];
+      rows.forEach(function(row){
+        var comp = String(row[0]||'').trim().toUpperCase();
+        var tipo = String(row[2]||'').trim().toUpperCase();
+        var desc = String(row[3]||'').trim();
+        if(!desc || desc.length<5) return;  // skip headers/empty
+        if(comp==='C20'||comp==='C21'||comp==='C22'){
+          var entry = tipo==='S' ? desc+' (D)' : desc;
+          if(comp==='C20') C20.push(entry);
+          else if(comp==='C21') C21.push(entry);
+          else C22.push(entry);
+        }
+      });
+
+      if(!C20.length && !C21.length && !C22.length){
+        statusEl.style.background='var(--red-bg)';
+        statusEl.style.color='var(--red-txt)';
+        statusEl.textContent='❌ No se encontraron descriptores. Verifica que las columnas A(competencia), C(tipo), D(descriptor) estén completas.';
+        return;
+      }
+
+      // Populate editor buffer
+      if(nombre) document.getElementById('er-nombre').value=nombre;
+      if(grado)  document.getElementById('er-grado').value=grado;
+      if(key){
+        document.getElementById('er-key').value=key;
+        erBuf.key=key;
+      }
+      erBuf.nombre=nombre; erBuf.grado=grado;
+      erBuf.C20=C20; erBuf.C21=C21; erBuf.C22=C22;
+      erRender();
+
+      statusEl.style.background='var(--green-bg)';
+      statusEl.style.color='var(--green-txt)';
+      statusEl.textContent='✅ Importado: '+(C20.length+C21.length+C22.length)+' descriptores (C20:'+C20.length+', C21:'+C21.length+', C22:'+C22.length+')'+
+        (nombre?' — '+nombre:'');
+      showToast('Rúbrica importada desde Excel ✓');
+    } catch(err){
+      statusEl.style.background='var(--red-bg)';
+      statusEl.style.color='var(--red-txt)';
+      statusEl.textContent='❌ Error al leer el archivo: '+err.message;
+    }
+    // Reset input so same file can be re-selected
+    input.value='';
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+// ── Exportar rúbrica actual a Excel (.xlsx) ───────────────────────────────────
+function erExportXlsx(){
+  // Sync buffer from form
+  var nombre=document.getElementById('er-nombre').value.trim()||'Rubrica';
+  var grado=document.getElementById('er-grado').value||'2°';
+  var key=document.getElementById('er-key').value.trim()||'rubrica';
+  erBuf.nombre=nombre; erBuf.grado=grado; erBuf.key=key;
+
+  var rows=[
+    ['Nombre', nombre],
+    ['Grado',  grado],
+    ['Clave',  key],
+    [],
+    ['Competencia','N°','Tipo','Descriptor','Notas'],
+  ];
+  var allDes=[
+    ...erBuf.C20.map(function(d,i){return ['C20',i+1,d.includes('(D)')?'S':'G',d.replace(' (D)',''),''];}),
+    ...erBuf.C21.map(function(d,i){return ['C21',i+1,d.includes('(D)')?'S':'G',d.replace(' (D)',''),''];}),
+    ...erBuf.C22.map(function(d,i){return ['C22',i+1,d.includes('(D)')?'S':'G',d.replace(' (D)',''),''];})
+  ];
+  rows=rows.concat(allDes);
+
+  var wb=XLSX.utils.book_new();
+  var ws=XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols']=[{wch:14},{wch:5},{wch:8},{wch:65},{wch:30}];
+  XLSX.utils.book_append_sheet(wb,ws,'Rúbrica');
+  XLSX.writeFile(wb,'Rubrica_'+key+'_'+grado.replace('°','')+'_CIPB.xlsx');
+  showToast('Exportado: Rubrica_'+key+'.xlsx ✓');
+}
+
 function erImport(){
   try{
     const obj=JSON.parse(document.getElementById('er-json').value);

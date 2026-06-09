@@ -639,7 +639,10 @@ label{font-size:12px;font-weight:600;color:var(--text2);display:block;margin-bot
     <button class="btn" style="flex:1" onclick="erImport()"><i class="ti ti-upload"></i> Importar JSON</button>
     <button class="btn" style="flex:1" onclick="erExportJson()"><i class="ti ti-copy"></i> Copiar JSON</button>
   </div>
-  <button class="btn btn-p" onclick="guardarRubricaCustom()"><i class="ti ti-device-floppy"></i> Guardar rúbrica</button>
+  <div id="er-base-hint" style="display:none;padding:8px 12px;background:var(--amber-bg);color:var(--amber-txt);border-radius:var(--r);font-size:11px;margin-top:8px">
+    <i class="ti ti-info-circle"></i> Rúbrica base — solo lectura. Usa "Copiar como nueva rúbrica" para crear una versión editable.
+  </div>
+  <button id="er-save-btn" class="btn btn-p" onclick="guardarRubricaCustom()"><i class="ti ti-device-floppy"></i> Guardar rúbrica</button>
 </div>
 
 <!-- BOTTOM NAV -->
@@ -1179,7 +1182,6 @@ function goTo(id){
     cfgCat('inst');
     var gs=document.getElementById('gestor-sec'); if(gs) renderGestorAlumnos(gs.value);
   }
-  if(id==='s-editor-rubrica'){ erComp='C20'; erRender(); }
   updateBnav(id);
   if(id==='s-notas-sec'){
     var e=document.getElementById('ns-sec');if(e)e.value=st.sec;
@@ -1820,26 +1822,38 @@ function renderCfgRubricas(){
   Object.entries(RUBRICAS).forEach(([key,r])=>{
     const orig = ORIG_KEYS.includes(key);
     const tot  = r.C20.length+r.C21.length+r.C22.length;
-    const d = document.createElement('div'); d.className='row-sb';
-    d.innerHTML = `<span class="tag tag-gray" style="font-size:10px">${r.grado}</span>
-      <span style="font-size:12px;flex:1;margin:0 8px">${r.nombre}<span class="muted"> · ${tot}</span></span>
-      ${orig
-        ? '<span class="tag tag-green" style="font-size:10px">Base</span>'
-        : `<span style="display:flex;gap:4px">
-            <button class="btn btn-sm" style="padding:3px 8px" onclick="abrirEditor('${key}')"><i class="ti ti-edit"></i></button>
-            <button class="btn btn-sm" style="padding:3px 8px;color:var(--red-txt)" onclick="erBorrar('${key}')"><i class="ti ti-trash"></i></button>
-          </span>`}`;
+    const d = document.createElement('div');
+    d.style.cssText='display:flex;align-items:center;gap:6px;padding:8px 0;border-bottom:1px solid var(--border)';
+    d.innerHTML = `
+      <span class="tag ${orig?'tag-green':'tag-gray'}" style="font-size:10px;flex-shrink:0">${r.grado}</span>
+      <span style="font-size:12px;flex:1">${r.nombre}<span class="muted"> · ${tot} desc.</span></span>
+      <span style="display:flex;gap:4px;flex-shrink:0">
+        <button class="btn btn-sm" style="padding:3px 10px" onclick="abrirEditor('${key}')">
+          <i class="ti ti-edit"></i> ${orig?'Ver':'Editar'}
+        </button>
+        ${!orig?`<button class="btn btn-sm" style="padding:3px 8px;color:var(--red-txt)" onclick="erBorrar('${key}')"><i class="ti ti-trash"></i></button>`:''}
+      </span>`;
     el.appendChild(d);
   });
+  // Remove border from last item
+  if(el.lastChild) el.lastChild.style.borderBottom='none';
 }
 
 function abrirEditor(key){
   erEditKey = key||null;
+  const isBase = key && ORIG_KEYS.includes(key);
   if(key && RUBRICAS[key]){
     const r=RUBRICAS[key];
     erBuf={nombre:r.nombre,grado:r.grado,key,C20:[...r.C20],C21:[...r.C21],C22:[...r.C22]};
-    document.getElementById('er-titulo').textContent='Editar rúbrica';
+    document.getElementById('er-titulo').textContent=isBase?'Ver rúbrica base':'Editar rúbrica';
     document.getElementById('er-key').disabled=true;
+    // For base rubricas: show read-only hint
+    var hint=document.getElementById('er-base-hint');
+    if(hint) hint.style.display=isBase?'block':'none';
+    // Save button: hide for base rubricas (or allow "copy as new")
+    var savebtn=document.getElementById('er-save-btn');
+    if(savebtn) savebtn.textContent=isBase?'Copiar como nueva rúbrica':'Guardar rúbrica';
+    if(savebtn) savebtn.onclick=isBase?copiarRubricaBase:guardarRubricaCustom;
   } else {
     erBuf={nombre:'',grado:'2°',key:'',C20:[],C21:[],C22:[]};
     document.getElementById('er-titulo').textContent='Nueva rúbrica';
@@ -1852,6 +1866,26 @@ function abrirEditor(key){
   document.getElementById('er-json').value='';
   erComp='C20';
   goTo('s-editor-rubrica');
+}
+
+function copiarRubricaBase(){
+  // Create a copy of the base rubrica with a new key
+  var newKey = erBuf.key + '_copia';
+  var counter = 1;
+  while(RUBRICAS[newKey]){ newKey = erBuf.key+'_copia'+counter; counter++; }
+  var nombre = erBuf.nombre + ' (copia)';
+  document.getElementById('er-nombre').value = nombre;
+  document.getElementById('er-key').value = newKey;
+  document.getElementById('er-key').disabled = false;
+  erBuf.nombre = nombre;
+  erBuf.key = newKey;
+  erEditKey = null;
+  document.getElementById('er-titulo').textContent = 'Nueva rúbrica (copia)';
+  var hint = document.getElementById('er-base-hint');
+  if(hint) hint.style.display = 'none';
+  var savebtn = document.getElementById('er-save-btn');
+  if(savebtn){ savebtn.textContent = 'Guardar rúbrica'; savebtn.onclick = guardarRubricaCustom; }
+  showToast('Listo — edita y guarda como rúbrica personalizada');
 }
 
 function erTab(c){
@@ -2026,6 +2060,7 @@ function guardarRubricaCustom(){
   const nombre=document.getElementById('er-nombre').value.trim();
   const grado=document.getElementById('er-grado').value;
   const key=document.getElementById('er-key').value.trim().toLowerCase();
+  if(ORIG_KEYS.includes(key) && erEditKey===null){ alert('Esa clave es de una rúbrica base. Usa una clave diferente.'); return; }
   if(!nombre){alert('Escribe un nombre.');return;}
   if(!key){alert('Escribe una clave interna (ej: ondas).');return;}
   const tot=erBuf.C20.length+erBuf.C21.length+erBuf.C22.length;

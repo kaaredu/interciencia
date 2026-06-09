@@ -1926,13 +1926,6 @@ document.addEventListener('keydown',e=>{
   if(e.key==='Enter'&&inp&&inp===document.activeElement){ erAdd(false); }
 });
 
-function erExportJson(){
-  erBuf.nombre=document.getElementById('er-nombre').value.trim();
-  erBuf.grado=document.getElementById('er-grado').value;
-  const txt=JSON.stringify({nombre:erBuf.nombre,grado:erBuf.grado,C20:erBuf.C20,C21:erBuf.C21,C22:erBuf.C22},null,2);
-  document.getElementById('er-json').value=txt;
-  navigator.clipboard?.writeText(txt).then(()=>{}).catch(()=>{});
-}
 // ── Importar rúbrica desde Excel (.xlsx) ─────────────────────────────────────
 function erImportXlsx(input){
   var file = input.files[0]; if(!file) return;
@@ -2040,18 +2033,6 @@ function erExportXlsx(){
   showToast('Exportado: Rubrica_'+key+'.xlsx ✓');
 }
 
-function erImport(){
-  try{
-    const obj=JSON.parse(document.getElementById('er-json').value);
-    if(!obj.C20||!obj.C21||!obj.C22){alert('JSON inválido: faltan C20, C21 o C22.');return;}
-    if(obj.nombre) document.getElementById('er-nombre').value=obj.nombre;
-    if(obj.grado)  document.getElementById('er-grado').value=obj.grado;
-    erBuf.C20=[...obj.C20]; erBuf.C21=[...obj.C21]; erBuf.C22=[...obj.C22];
-    erRender();
-    document.getElementById('er-json').style.borderColor='var(--green)';
-    setTimeout(()=>document.getElementById('er-json').style.borderColor='',1000);
-  }catch(e){alert('JSON inválido. Revisa el formato.');}
-}
 function erBorrar(key){
   if(!confirm('¿Eliminar la rúbrica "'+RUBRICAS[key]?.nombre+'"?'))return;
   delete RUBRICAS[key]; saveCustomRubricas(); renderCfgRubricas(); actualizarSelectsPractica();

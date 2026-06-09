@@ -1055,7 +1055,16 @@ function migrarDistribucionMesas(){
   });
 }
 
-function showApp(){flushPending();migrateOldKeys();document.getElementById('login-wrap').style.display='none';document.getElementById('app').style.display='block';document.getElementById('bottom-nav').style.display='flex';var cu=document.getElementById('cfg-user');if(cu)cu.textContent=currentUser.email;document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active');});var home=document.getElementById('s-home');if(home)home.classList.add('active');loadAll(function(){renderHome();updateBnav('s-home');migrarDistribucionMesas();});}
+function showApp(){
+  flushPending(); migrateOldKeys();
+  var lw=document.getElementById('login-wrap');   if(lw) lw.style.display='none';
+  var ap=document.getElementById('app');          if(ap) ap.style.display='block';
+  var bn=document.getElementById('bottom-nav');   if(bn) bn.style.display='flex';
+  var cu=document.getElementById('cfg-user');     if(cu) cu.textContent=currentUser&&currentUser.email||'';
+  document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active');});
+  var home=document.getElementById('s-home'); if(home) home.classList.add('active');
+  loadAll(function(){ renderHome(); updateBnav('s-home'); migrarDistribucionMesas(); });
+}
 function showLogin(){
   var lw=document.getElementById('login-wrap');
   var ap=document.getElementById('app');
@@ -1261,7 +1270,7 @@ function goToMesas(){
 // HOME — GRADOS
 // ══════════════════════════════════════════════════════
 function renderHome(){
-  const el=document.getElementById('grados-grid'); el.innerHTML='';
+  const el=document.getElementById('grados-grid'); if(!el) return; el.innerHTML='';
   const grados=[{n:'1°',g:'1'},{n:'2°',g:'2'},{n:'3°',g:'3'},{n:'4°',g:'4'},{n:'5°',g:'5'}];
   const colors=['var(--blue-bg)','var(--green-bg)','var(--amber-bg)','var(--red-bg)','var(--bg3)'];
   grados.forEach(({n,g},i)=>{
@@ -1291,7 +1300,7 @@ function renderHome(){
 // SECCIONES
 // ══════════════════════════════════════════════════════
 function renderSecciones(){
-  document.getElementById('sec-titulo').textContent=`${st.grado}° Secundaria`;
+  var _st=document.getElementById('sec-titulo'); if(_st) _st.textContent=`${st.grado}° Secundaria`;
   const secs=SECS.filter(s=>s.startsWith(st.grado+'°'));
   const el=document.getElementById('secciones-grid'); el.innerHTML='';
   secs.forEach(s=>{
@@ -1320,7 +1329,7 @@ function renderMesas(){
     badge.style.display='inline';
   }
 
-  document.getElementById('mesas-titulo').textContent=st.sec+' — Mesas';
+  var _mt=document.getElementById('mesas-titulo'); if(_mt) _mt.textContent=st.sec+' — Mesas';
   var el=document.getElementById('mesas-list');el.innerHTML='';
   for(var m=1;m<=6;m++){
     var als=getAlsMesa(st.sec,m);var cal=contarCal(st.sec,m);var tot=als.length;var nivel=getNivelMesa(st.sec,m);
@@ -3404,11 +3413,19 @@ function showToast(msg, type){
   window._toastTimer=setTimeout(function(){ t.className='app-toast'; }, 3000);
 }
 
-document.getElementById('np-fecha').valueAsDate=new Date();
-loadCustomRubricas();
-updateBnav('s-home');
-// Init asistencia on app load
-setTimeout(initAsistencia, 500);
+// Wait for DOM to be fully ready before running boot code
+document.addEventListener('DOMContentLoaded', function(){
+  var npf=document.getElementById('np-fecha');
+  if(npf) npf.valueAsDate=new Date();
+  loadCustomRubricas();
+  updateBnav('s-home');
+  setTimeout(initAsistencia, 500);
+});
+// If DOM already ready (script loaded late), run immediately
+if(document.readyState==='complete'||document.readyState==='interactive'){
+  var npf2=document.getElementById('np-fecha');
+  if(npf2 && !npf2.value) npf2.valueAsDate=new Date();
+}
 
 
 </script>

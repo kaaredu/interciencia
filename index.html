@@ -485,6 +485,21 @@ label{font-size:12px;font-weight:600;color:var(--text2);display:block;margin-bot
       </div>
       <div id="cfg-cotejo-list" style="display:flex;flex-direction:column;gap:8px"></div>
       <div id="cotejo-visor" style="margin-top:4px"></div>
+      <!-- Importar / Exportar -->
+      <div class="sec-lbl" style="margin-top:12px">Importar / Exportar</div>
+      <div style="display:flex;gap:8px;margin-bottom:6px">
+        <button class="btn" style="flex:1;background:var(--green-bg);color:var(--green-txt);border-color:var(--green)" onclick="document.getElementById('cotejo-xlsx-input').click()">
+          <i class="ti ti-file-spreadsheet"></i> Importar Excel
+        </button>
+        <input type="file" id="cotejo-xlsx-input" accept=".xlsx" style="display:none" onchange="cotejoImportXlsx(this)">
+        <button class="btn" style="flex:1" onclick="cotejoExportXlsx()">
+          <i class="ti ti-table-export"></i> Exportar Excel
+        </button>
+      </div>
+      <button class="btn" style="background:var(--blue-bg);color:var(--blue-txt);border-color:var(--blue)" onclick="descargarPlantillaCotejo()">
+        <i class="ti ti-download"></i> Descargar plantilla Excel
+      </button>
+      <div id="cotejo-xlsx-status" style="display:none;font-size:11px;padding:6px 10px;border-radius:var(--r);margin-top:6px"></div>
     </div>
 
     <!-- ── Escalas de desempeño ── -->
@@ -494,6 +509,21 @@ label{font-size:12px;font-weight:600;color:var(--text2);display:block;margin-bot
       </div>
       <div id="cfg-escala-list" style="display:flex;flex-direction:column;gap:8px"></div>
       <div id="escala-visor" style="margin-top:4px"></div>
+      <!-- Importar / Exportar -->
+      <div class="sec-lbl" style="margin-top:12px">Importar / Exportar</div>
+      <div style="display:flex;gap:8px;margin-bottom:6px">
+        <button class="btn" style="flex:1;background:var(--green-bg);color:var(--green-txt);border-color:var(--green)" onclick="document.getElementById('escala-xlsx-input').click()">
+          <i class="ti ti-file-spreadsheet"></i> Importar Excel
+        </button>
+        <input type="file" id="escala-xlsx-input" accept=".xlsx" style="display:none" onchange="escalaImportXlsx(this)">
+        <button class="btn" style="flex:1" onclick="escalaExportXlsx()">
+          <i class="ti ti-table-export"></i> Exportar Excel
+        </button>
+      </div>
+      <button class="btn" style="background:var(--blue-bg);color:var(--blue-txt);border-color:var(--blue)" onclick="descargarPlantillaEscala()">
+        <i class="ti ti-download"></i> Descargar plantilla Excel
+      </button>
+      <div id="escala-xlsx-status" style="display:none;font-size:11px;padding:6px 10px;border-radius:var(--r);margin-top:6px"></div>
     </div>
 
     <!-- ── Otros ── -->
@@ -2162,6 +2192,157 @@ function cfgInst(tab){
 
 
 // ── Listas de cotejo: listar como tarjetas ──────────────────────────────────
+
+// ════════════════════════════════════════════════════════════════════
+// IMPORTAR / EXPORTAR — Listas de Cotejo y Escalas
+// ════════════════════════════════════════════════════════════════════
+function _leerInstrumentoXlsx(file, tipo, statusElId, onSuccess){
+  var statusEl=document.getElementById(statusElId);
+  if(statusEl){statusEl.style.display='block';statusEl.style.background='var(--amber-bg)';statusEl.style.color='var(--amber-txt)';statusEl.textContent='Leyendo archivo...';}
+  var reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      var data=new Uint8Array(e.target.result);
+      var wb=XLSX.read(data,{type:'array'});
+      var ws=wb.Sheets[wb.SheetNames[0]];
+      var rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+      var titulo='',grado='2°',clave='';
+      rows.forEach(function(row){
+        var a=String(row[0]||'').trim().toLowerCase();
+        var b=String(row[1]||'').trim();
+        if((a.includes('título')||a.includes('titulo')||a.includes('nombre'))&&b&&!b.toLowerCase().includes('ej:')) titulo=b;
+        if(a.includes('grado')&&b&&b.match(/[1-5]°/)) grado=b;
+        if(a.includes('clave')&&b&&!b.toLowerCase().includes('ej:')) clave=b.replace(/[^a-zA-Z0-9_]/g,'').toLowerCase();
+      });
+      var C20=[],C21=[],C22=[];
+      rows.forEach(function(row){
+        var comp=String(row[0]||'').trim().toUpperCase();
+        var num=parseInt(row[1])||0;
+        var tag=String(row[2]||'G').trim().toUpperCase();
+        var txt=String(row[3]||'').trim();
+        if(!txt||txt.length<5) return;
+        if(comp==='C20'||comp==='C21'||comp==='C22'){
+          var item={num:num||1,tag:(tag==='S'?'S':'G'),txt:txt};
+          if(comp==='C20') C20.push(item);
+          else if(comp==='C21') C21.push(item);
+          else C22.push(item);
+        }
+      });
+      [C20,C21,C22].forEach(function(arr){arr.forEach(function(d,i){d.num=i+1;});});
+      if(!C20.length&&!C21.length&&!C22.length){
+        if(statusEl){statusEl.style.background='var(--red-bg)';statusEl.style.color='var(--red-txt)';statusEl.textContent='❌ No se encontraron ítems. Verifica columnas A(comp), C(tipo G/S), D(texto).';}
+        return;
+      }
+      var total=C20.length+C21.length+C22.length;
+      if(statusEl){statusEl.style.background='var(--green-bg)';statusEl.style.color='var(--green-txt)';statusEl.textContent='✅ Importado: '+total+' ítems (C20:'+C20.length+', C21:'+C21.length+', C22:'+C22.length+')'+(titulo?' — '+titulo:'');}
+      onSuccess({titulo:titulo||'Nuevo instrumento',grado:grado,clave:clave,C20:C20,C21:C21,C22:C22});
+      showToast('Instrumento importado ✓');
+    }catch(err){
+      if(statusEl){statusEl.style.background='var(--red-bg)';statusEl.style.color='var(--red-txt)';statusEl.textContent='❌ Error: '+err.message;}
+    }
+    if(file.value!==undefined) file.value='';
+  };
+  reader.readAsArrayBuffer(file.files[0]);
+}
+function _exportarInstrumentoXlsx(key,tipo){
+  var inst=LISTAS_COTEJO[key];
+  if(!inst){showToast('Instrumento no encontrado','error');return;}
+  var wb=XLSX.utils.book_new();
+  var rows=[['Título',inst.titulo||key],['Grado',inst.grado||'2°'],['Clave',key],[],['Competencia','N°','Tipo','Descriptor']];
+  ['C20','C21','C22'].forEach(function(comp){(inst[comp]||[]).forEach(function(d){rows.push([comp,d.num,d.tag,d.txt]);});});
+  var ws=XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols']=[{wch:14},{wch:5},{wch:8},{wch:72}];
+  XLSX.utils.book_append_sheet(wb,ws,(tipo==='cotejo'?'LC':'ED')+'_'+key.substring(0,25));
+  XLSX.writeFile(wb,(tipo==='cotejo'?'ListaCotejo':'Escala')+'_'+key+'_CIPB.xlsx');
+  showToast('Exportado ✓');
+}
+function _plantillaInstrumento(tipo){
+  var wb=XLSX.utils.book_new();
+  var rows=[
+    ['Título','Escribe aquí el nombre del instrumento'],
+    ['Grado','2°'],
+    ['Clave','mi_instrumento'],
+    [],
+    ['Competencia','N°','Tipo','Descriptor'],
+    ['──────────','──','────','C20 — Indaga mediante métodos científicos'],
+    ['C20',1,'G','Ejemplo: Formula hipótesis con justificación causa-efecto.'],
+    ['C20',2,'S','Ejemplo: Participa activamente en todas las etapas de la sesión.'],
+    ['C20',3,'G','(agrega más filas C20 aquí)'],
+    [],
+    ['──────────','──','────','C21 — Explica el mundo físico'],
+    ['C21',1,'G','Ejemplo: Explica el fenómeno relacionando variables con sus datos.'],
+    ['C21',2,'S','Ejemplo: Aporta interpretaciones propias al análisis del equipo.'],
+    [],
+    ['──────────','──','────','C22 — Diseña y produce soluciones'],
+    ['C22',1,'G','Ejemplo: Realiza el montaje experimental con la técnica adecuada.'],
+    ['C22',2,'S','Ejemplo: Asume su rol en el equipo apoyando sin reemplazar.'],
+    [],
+    ['INSTRUCCIONES:','','',''],
+    ['Columna A:','','','C20, C21 o C22'],
+    ['Columna B:','','','Número de orden'],
+    ['Columna C:','','','G = Guía  /  S = Sesión'],
+    ['Columna D:','','','Texto completo del ítem'],
+  ];
+  var ws=XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols']=[{wch:16},{wch:5},{wch:8},{wch:72}];
+  var label=tipo==='cotejo'?'ListaCotejo':'EscalaDesempeño';
+  XLSX.utils.book_append_sheet(wb,ws,'Plantilla');
+  XLSX.writeFile(wb,'Plantilla_'+label+'_CIPB.xlsx');
+  showToast('Plantilla descargada ✓');
+}
+function cotejoImportXlsx(input){
+  _leerInstrumentoXlsx(input,'cotejo','cotejo-xlsx-status',function(inst){
+    var key=inst.clave||('cotejo_'+Date.now());
+    if(inst.clave&&LISTAS_COTEJO[inst.clave]&&!confirm('Ya existe "'+inst.clave+'". ¿Reemplazar?')) return;
+    LISTAS_COTEJO[key]={titulo:inst.titulo,grado:inst.grado,C20:inst.C20,C21:inst.C21,C22:inst.C22};
+    renderCotejoList();
+    if(typeof poblarNpInstrumento==='function'){var e=document.getElementById('np-instrumento');if(e)poblarNpInstrumento(e.value);}
+  });
+}
+function cotejoExportXlsx(){
+  var base=['caida','cg','trabajo','mas'];
+  var keys=Object.keys(LISTAS_COTEJO).filter(function(k){return !base.includes(k);});
+  if(!keys.length){showToast('No hay instrumentos personalizados','warn');return;}
+  if(keys.length===1){_exportarInstrumentoXlsx(keys[0],'cotejo');return;}
+  var wb=XLSX.utils.book_new();
+  keys.forEach(function(key){
+    var inst=LISTAS_COTEJO[key];if(!inst)return;
+    var rows=[['Título',inst.titulo||key],['Grado',inst.grado||''],['Clave',key],[],['Competencia','N°','Tipo','Descriptor']];
+    ['C20','C21','C22'].forEach(function(comp){(inst[comp]||[]).forEach(function(d){rows.push([comp,d.num,d.tag,d.txt]);});});
+    var ws=XLSX.utils.aoa_to_sheet(rows);ws['!cols']=[{wch:14},{wch:5},{wch:8},{wch:72}];
+    XLSX.utils.book_append_sheet(wb,ws,('LC_'+key).substring(0,31));
+  });
+  XLSX.writeFile(wb,'ListasCotejo_CIPB_'+new Date().toISOString().slice(0,10)+'.xlsx');
+  showToast('Exportados '+keys.length+' instrumentos ✓');
+}
+function descargarPlantillaCotejo(){_plantillaInstrumento('cotejo');}
+function escalaImportXlsx(input){
+  _leerInstrumentoXlsx(input,'escala','escala-xlsx-status',function(inst){
+    var key=inst.clave||('escala_'+Date.now());
+    if(inst.clave&&LISTAS_COTEJO[inst.clave]&&!confirm('Ya existe "'+inst.clave+'". ¿Reemplazar?')) return;
+    LISTAS_COTEJO[key]={titulo:inst.titulo,grado:inst.grado,C20:inst.C20,C21:inst.C21,C22:inst.C22};
+    renderEscalaList();
+    if(typeof poblarNpInstrumento==='function'){var e=document.getElementById('np-instrumento');if(e)poblarNpInstrumento(e.value);}
+  });
+}
+function escalaExportXlsx(){
+  var base=['caida','cg','trabajo','mas'];
+  var keys=Object.keys(LISTAS_COTEJO).filter(function(k){return !base.includes(k);});
+  if(!keys.length){showToast('No hay instrumentos personalizados','warn');return;}
+  if(keys.length===1){_exportarInstrumentoXlsx(keys[0],'escala');return;}
+  var wb=XLSX.utils.book_new();
+  keys.forEach(function(key){
+    var inst=LISTAS_COTEJO[key];if(!inst)return;
+    var rows=[['Título',inst.titulo||key],['Grado',inst.grado||''],['Clave',key],[],['Competencia','N°','Tipo','Descriptor']];
+    ['C20','C21','C22'].forEach(function(comp){(inst[comp]||[]).forEach(function(d){rows.push([comp,d.num,d.tag,d.txt]);});});
+    var ws=XLSX.utils.aoa_to_sheet(rows);ws['!cols']=[{wch:14},{wch:5},{wch:8},{wch:72}];
+    XLSX.utils.book_append_sheet(wb,ws,('ED_'+key).substring(0,31));
+  });
+  XLSX.writeFile(wb,'Escalas_CIPB_'+new Date().toISOString().slice(0,10)+'.xlsx');
+  showToast('Exportados '+keys.length+' instrumentos ✓');
+}
+function descargarPlantillaEscala(){_plantillaInstrumento('escala');}
+
 function renderCotejoList(){
   var el=document.getElementById('cfg-cotejo-list'); if(!el) return;
   el.innerHTML='';
